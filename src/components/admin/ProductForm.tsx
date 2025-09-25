@@ -1,0 +1,132 @@
+"use client";
+
+import { useState } from "react";
+
+// Minimal runtime validation without external deps (we can swap to Zod when approved)
+function validate(values: Record<string, any>) {
+  const errors: Record<string, string> = {};
+  if (!values.name_en?.trim()) errors.name_en = "Required";
+  if (!values.name_es?.trim()) errors.name_es = "Requerido";
+  if (!values.price || Number.isNaN(Number(values.price))) errors.price = "Invalid price";
+  if (!values.stock || Number.isNaN(Number(values.stock))) errors.stock = "Invalid stock";
+  return errors;
+}
+
+export default function ProductForm() {
+  const [values, setValues] = useState({
+    name_en: "",
+    name_es: "",
+    description_en: "",
+    description_es: "",
+    price: "",
+    stock: "",
+    category: "",
+    featured: false,
+  });
+  const [images, setImages] = useState<File[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    const { name, value, type, checked } = e.target as HTMLInputElement;
+    setValues((v) => ({ ...v, [name]: type === "checkbox" ? checked : value }));
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const errs = validate(values);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    try {
+      setUploading(true);
+      // TODO: call our presign API for each image and upload to S3
+      // const presign = await fetch("/api/uploads/presign", { method: "POST" })
+      // ...
+      await new Promise((r) => setTimeout(r, 600));
+      setSubmitted("Saved (stub)");
+    } catch (err) {
+      console.error(err);
+      setSubmitted("Error saving (stub)");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+      <h2 className="text-lg font-semibold mb-4">Create Product</h2>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm mb-1">Name (EN)</label>
+          <input name="name_en" value={values.name_en} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          {errors.name_en && <p className="text-xs text-red-400 mt-1">{errors.name_en}</p>}
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Nombre (ES)</label>
+          <input name="name_es" value={values.name_es} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          {errors.name_es && <p className="text-xs text-red-400 mt-1">{errors.name_es}</p>}
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Description (EN)</label>
+          <textarea name="description_en" value={values.description_en} onChange={onChange} className="min-h-[90px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Descripci3n (ES)</label>
+          <textarea name="description_es" value={values.description_es} onChange={onChange} className="min-h-[90px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Price</label>
+          <input name="price" value={values.price} onChange={onChange} inputMode="decimal" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Stock</label>
+          <input name="stock" value={values.stock} onChange={onChange} inputMode="numeric" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          {errors.stock && <p className="text-xs text-red-400 mt-1">{errors.stock}</p>}
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Category</label>
+          <input name="category" value={values.category} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+        </div>
+        <div className="flex items-center gap-2 mt-6">
+          <input id="featured" name="featured" type="checkbox" checked={values.featured} onChange={onChange} className="h-4 w-4" />
+          <label htmlFor="featured" className="text-sm">Featured</label>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <label className="block text-sm mb-2">Images</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => setImages(Array.from(e.target.files || []))}
+          className="block w-full text-sm"
+        />
+        {images.length > 0 && (
+          <p className="text-xs text-gray-400 mt-2">{images.length} file(s) selected</p>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-center gap-3">
+        <button
+          disabled={uploading}
+          className="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60"
+        >
+          {uploading ? "Saving..." : "Save product"}
+        </button>
+        {submitted && <span className="text-sm text-gray-400">{submitted}</span>}
+      </div>
+
+      <div className="mt-6 rounded-md border border-yellow-900/50 bg-yellow-950/20 p-3 text-sm text-yellow-200">
+        To enable real S3 uploads, I will add a Next.js API route that creates a presigned POST and
+        install AWS SDK v3 (client-s3 and s3-presigned-post). Please confirm you want me to install
+        dependencies and I0ll wire it up end-to-end (as before), with public-read ACL and size limits.
+      </div>
+    </form>
+  );
+}
+

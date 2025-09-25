@@ -41,12 +41,19 @@ export default function Navbar() {
             </nav>
 
             {/* Language pill */}
-            <div className="flex items-center rounded-full bg-neutral-800 p-1 border border-neutral-700">
+            <div className="relative grid grid-cols-2 items-center rounded-full bg-neutral-800 p-1 border border-neutral-700">
+              {/* gold overlay */}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[--gold] transition-transform duration-200 ease-out ${
+                  lang === "en" ? "translate-x-full" : "translate-x-0"
+                }`}
+              />
               <button
                 aria-label="Español"
                 onClick={() => setLang("es")}
-                className={`px-2 py-1 text-xs rounded-full ${
-                  lang === "es" ? "bg-[--gold] text-black" : "text-gray-300 hover:text-white"
+                className={`relative z-10 px-3 py-1 text-xs rounded-full ${
+                  lang === "es" ? "text-black" : "text-gray-300 hover:text-white"
                 }`}
               >
                 {dict.langBadge.es}
@@ -54,8 +61,8 @@ export default function Navbar() {
               <button
                 aria-label="English"
                 onClick={() => setLang("en")}
-                className={`px-2 py-1 text-xs rounded-full ${
-                  lang === "en" ? "bg-[--gold] text-black" : "text-gray-300 hover:text-white"
+                className={`relative z-10 px-3 py-1 text-xs rounded-full ${
+                  lang === "en" ? "text-black" : "text-gray-300 hover:text-white"
                 }`}
               >
                 {dict.langBadge.en}
