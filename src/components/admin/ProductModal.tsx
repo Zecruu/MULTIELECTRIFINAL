@@ -22,12 +22,18 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+
 
   useEffect(() => {
     if (open) {
       setV(prev => ({ ...prev, ...(initial ?? {}) } as ProductInput));
       setFiles([]);
       setErr(null);
+      fetch("/api/categories").then(r=>r.json()).then(j=>{
+        const list = Array.isArray(j.categories) ? j.categories.map((c: {name:string})=>c.name) : [];
+        setCategories(list);
+      }).catch(()=>setCategories([]));
     }
   }, [open, initial]);
 
@@ -92,12 +98,15 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
             <textarea name="description_en" value={v.description_en} onChange={onChange} className="min-h-[70px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
           </div>
           <div>
-            <label className="block text-sm mb-1">Descripcin (ES)</label>
+            <label className="block text-sm mb-1">Descripcion (ES)</label>
             <textarea name="description_es" value={v.description_es} onChange={onChange} className="min-h-[70px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
           </div>
           <div>
             <label className="block text-sm mb-1">Category</label>
-            <input name="category" value={v.category} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+            <input list="categoryOptions" name="category" value={v.category} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+            <datalist id="categoryOptions">
+              {categories.map((c)=> <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div>
             <label className="block text-sm mb-1">Price</label>

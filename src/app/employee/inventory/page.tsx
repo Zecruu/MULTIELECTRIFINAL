@@ -19,6 +19,16 @@ export default function InventoryPage() {
   }
   useEffect(()=>{ load(); },[]);
 
+  function exportCSV() {
+    const header = ["id","sku","name_en","name_es","category","price","stock","status","updatedAt"];
+    const data = rows.map(p=>[p.id,p.sku,p.name_en,p.name_es,p.category,p.price.toFixed(2),p.stock,p.status,p.updatedAt]);
+    const csv = [header, ...data].map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `inventory-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function onDelete(id: string) {
     if (!confirm("Delete this product?")) return;
     const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
@@ -37,6 +47,7 @@ export default function InventoryPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Inventory</h1>
         <div className="flex items-center gap-3">
+          <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
           {canManage && (
             <button onClick={()=>{ setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-black font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
           )}

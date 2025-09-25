@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Order = {
   id: number;
@@ -14,8 +14,19 @@ type Order = {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const esRef = useRef<EventSource | null>(null);
+
+  async function load() {
+    const j = await fetch("/api/orders").then(r=>r.json());
+    setOrders(j.orders||[]);
+  }
   useEffect(() => {
-    fetch("/api/orders").then(r=>r.json()).then(j=>setOrders(j.orders||[]));
+    load();
+    const es = new EventSource("/api/orders/stream");
+    es.onmessage = () => load();
+    es.onerror = () => { es.close(); };
+    esRef.current = es;
+    return () => { es.close(); };
   }, []);
 
   async function updateStatus(id: number, status: Order["status"]) {
@@ -25,9 +36,22 @@ export default function OrdersPage() {
     }
   }
 
+  function exportCSV() {
+    const header = ["number","client","email","total","status","date","assigned"];
+    const rows = orders.map(o=>[o.number,o.clientName,o.email,o.total.toFixed(2),o.status,o.date,o.assigned]);
+    const csv = [header, ...rows].map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `orders-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4" style={{ color: "var(--gold)" }}>Orders</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Orders</h1>
+        <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
+      </div>
       <div className="overflow-x-auto rounded-md border border-neutral-900">
         <table className="min-w-full text-sm">
           <thead className="bg-neutral-900/50">

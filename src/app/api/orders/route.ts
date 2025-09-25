@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { publishOrderEvent } from "@/lib/sse";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,7 @@ export async function PATCH(req: NextRequest) {
   const id = Number(url.searchParams.get("id"));
   const { status } = await req.json().catch(() => ({}));
   ORDERS = ORDERS.map((o) => (o.id === id ? { ...o, status } : o));
+  publishOrderEvent({ type: "order-updated", payload: { id, status } });
   return Response.json({ ok: true });
 }
 
