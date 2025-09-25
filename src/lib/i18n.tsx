@@ -6,7 +6,18 @@ export type Lang = "en" | "es";
 
 const GOLD = "#D4AF37"; // gold accent
 
-const dictionaries = {
+type Dictionary = {
+  brand: string;
+  nav: { home: string; services: string; about: string; contact: string };
+  hero: { title: string; subtitle: string; cta: string };
+  featured: { title: string; viewAll: string };
+  services: { title: string; bullets: string[] };
+  footer: { contact: string; address: string; phone: string; email: string; rights: string };
+  langBadge: { en: string; es: string };
+  gold: string;
+};
+
+const dictionaries: Record<Lang, Dictionary> = {
   en: {
     brand: "Multi Electric Supply",
     nav: { home: "Home", services: "Services", about: "About", contact: "Contact" },
@@ -61,12 +72,12 @@ const dictionaries = {
     langBadge: { en: "EN", es: "ES" },
     gold: GOLD,
   },
-} as const;
+};
 
 interface I18nContextValue {
   lang: Lang;
   setLang: (l: Lang) => void;
-  dict: typeof dictionaries.en;
+  dict: Dictionary;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
