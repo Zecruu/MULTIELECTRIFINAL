@@ -3,7 +3,18 @@
 import { useState } from "react";
 
 // Minimal runtime validation without external deps (we can swap to Zod when approved)
-function validate(values: Record<string, any>) {
+type ProductFormValues = {
+  name_en: string;
+  name_es: string;
+  description_en: string;
+  description_es: string;
+  price: string; // keep as string for controlled input
+  stock: string; // keep as string for controlled input
+  category: string;
+  featured: boolean;
+};
+
+function validate(values: ProductFormValues) {
   const errors: Record<string, string> = {};
   if (!values.name_en?.trim()) errors.name_en = "Required";
   if (!values.name_es?.trim()) errors.name_es = "Requerido";
@@ -13,7 +24,7 @@ function validate(values: Record<string, any>) {
 }
 
 export default function ProductForm() {
-  const [values, setValues] = useState({
+  const [values, setValues] = useState<ProductFormValues>({
     name_en: "",
     name_es: "",
     description_en: "",
@@ -27,6 +38,7 @@ export default function ProductForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
 
   function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value, type, checked } = e.target as HTMLInputElement;
@@ -41,14 +53,30 @@ export default function ProductForm() {
 
     try {
       setUploading(true);
-      // TODO: call our presign API for each image and upload to S3
-      // const presign = await fetch("/api/uploads/presign", { method: "POST" })
-      // ...
-      await new Promise((r) => setTimeout(r, 600));
-      setSubmitted("Saved (stub)");
+      const uploaded: string[] = [];
+      for (const file of images) {
+        const presignRes = await fetch("/api/uploads/presign", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        });
+        if (!presignRes.ok) throw new Error("Presign failed");
+        const { url, fields, publicUrl } = await presignRes.json();
+
+        const formData = new FormData();
+        Object.entries(fields).forEach(([k, v]) => formData.append(k, v as string));
+        formData.append("file", file);
+
+        const s3Res = await fetch(url, { method: "POST", body: formData });
+        if (!s3Res.ok) throw new Error("S3 upload failed");
+
+        uploaded.push(publicUrl);
+      }
+      setUploadedUrls(uploaded);
+      setSubmitted(`Saved (${uploaded.length} image${uploaded.length === 1 ? "" : "s"} uploaded)`);
     } catch (err) {
       console.error(err);
-      setSubmitted("Error saving (stub)");
+      setSubmitted("Error saving");
     } finally {
       setUploading(false);
     }
@@ -74,7 +102,7 @@ export default function ProductForm() {
           <textarea name="description_en" value={values.description_en} onChange={onChange} className="min-h-[90px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
         </div>
         <div>
-          <label className="block text-sm mb-1">Descripci3n (ES)</label>
+          <label className="block text-sm mb-1">Descripción (ES)</label>
           <textarea name="description_es" value={values.description_es} onChange={onChange} className="min-h-[90px] w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
         </div>
         <div>
@@ -121,11 +149,16 @@ export default function ProductForm() {
         {submitted && <span className="text-sm text-gray-400">{submitted}</span>}
       </div>
 
-      <div className="mt-6 rounded-md border border-yellow-900/50 bg-yellow-950/20 p-3 text-sm text-yellow-200">
-        To enable real S3 uploads, I will add a Next.js API route that creates a presigned POST and
-        install AWS SDK v3 (client-s3 and s3-presigned-post). Please confirm you want me to install
-        dependencies and I0ll wire it up end-to-end (as before), with public-read ACL and size limits.
-      </div>
+      {uploadedUrls.length > 0 && (
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {uploadedUrls.map((u) => (
+            <a key={u} href={u} target="_blank" rel="noreferrer" className="block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u} alt="uploaded" className="h-24 w-full object-cover rounded" />
+            </a>
+          ))}
+        </div>
+      )}
     </form>
   );
 }
