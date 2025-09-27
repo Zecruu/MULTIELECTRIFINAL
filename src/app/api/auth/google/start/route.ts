@@ -10,10 +10,10 @@ export async function GET(req: Request) {
   c.set("g_state", state, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
 
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || `${process.env.APP_URL || ""}/api/auth/google/callback`).trim();
-  if (!clientId || !redirectUri) {
-    return new Response("Google OAuth not configured", { status: 500 });
-  }
+  const origin = (process.env.APP_URL || `${url.protocol}//${url.host}`).replace(/\/$/, "");
+  const redirectUri = (process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`).trim();
+  if (!clientId) return new Response("Google OAuth not configured: missing GOOGLE_CLIENT_ID", { status: 500 });
+  if (!redirectUri) return new Response("Google OAuth not configured: missing APP_URL or GOOGLE_REDIRECT_URI", { status: 500 });
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,

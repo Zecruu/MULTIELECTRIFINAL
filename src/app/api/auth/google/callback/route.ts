@@ -16,10 +16,11 @@ export async function GET(req: NextRequest) {
 
   const client_id = process.env.GOOGLE_CLIENT_ID || "";
   const client_secret = process.env.GOOGLE_CLIENT_SECRET || "";
-  const redirect_uri = (process.env.GOOGLE_REDIRECT_URI || `${process.env.APP_URL || ""}/api/auth/google/callback`).trim();
-  if (!client_id || !client_secret || !redirect_uri) {
-    return Response.json({ error: "OAuth not configured" }, { status: 500 });
-  }
+  const origin = (process.env.APP_URL || `${url.protocol}//${url.host}`).replace(/\/$/, "");
+  const redirect_uri = (process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`).trim();
+  if (!client_id) return Response.json({ error: "OAuth not configured: missing GOOGLE_CLIENT_ID" }, { status: 500 });
+  if (!client_secret) return Response.json({ error: "OAuth not configured: missing GOOGLE_CLIENT_SECRET" }, { status: 500 });
+  if (!redirect_uri) return Response.json({ error: "OAuth not configured: missing APP_URL or GOOGLE_REDIRECT_URI" }, { status: 500 });
 
   // Exchange code for tokens
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
