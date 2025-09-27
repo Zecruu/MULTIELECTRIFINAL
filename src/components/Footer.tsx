@@ -6,7 +6,7 @@ export default function Footer() {
   const { dict } = useI18n();
   return (
     <footer id="contact" className="bg-neutral-950 text-gray-300 border-t border-neutral-900">
-      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
+      <div className="w-full max-w-none px-3 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
         <div className="grid md:grid-cols-3 gap-6 text-sm">
           <div>
             <div className="font-semibold" style={{ color: "var(--gold)" }}>{dict.brand}</div>

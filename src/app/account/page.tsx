@@ -36,7 +36,7 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-gray-100">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10">
+      <div className="w-full max-w-none px-3 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
         <h1 className="text-2xl sm:text-3xl font-semibold" style={{ color: "var(--gold)" }}>Mi Cuenta / My Account</h1>
         <div className="mt-6 grid lg:grid-cols-3 gap-6">
           {/* Profile */}

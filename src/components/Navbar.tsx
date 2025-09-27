@@ -41,7 +41,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/75 border-b border-neutral-800">
-      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
+      <div className="w-full max-w-none px-3 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
         <div className="flex h-14 items-center justify-between">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
@@ -65,6 +65,7 @@ export default function Navbar() {
               <Link href="#services" className={linkCls}>{dict.nav.services}</Link>
               <Link href="#about" className={linkCls}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls}>{dict.nav.contact}</Link>
+              <Link href="/shop" className={linkCls}>Shop</Link>
               <Link href="/account" className={linkCls}>Mi Cuenta</Link>
             </nav>
 
@@ -129,6 +130,7 @@ export default function Navbar() {
               <Link href="#services" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.services}</Link>
               <Link href="#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
+              <Link href="/shop" className={linkCls} onClick={() => setOpen(false)}>Shop</Link>
               <Link href="/account" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
             </nav>
           </div>

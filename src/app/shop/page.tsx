@@ -94,7 +94,7 @@ export default function ShopPage() {
 
   return (
     <main className="min-h-screen bg-neutral-950">
-      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
+      <div className="w-full max-w-none px-3 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Shop</h1>
