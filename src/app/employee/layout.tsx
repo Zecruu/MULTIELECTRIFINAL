@@ -92,7 +92,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       <header className="border-b border-neutral-900 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+        <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 h-14 flex items-center justify-between">
           <div className="font-semibold" style={{ color: "var(--gold)" }}>Multi Electric Employee Portal</div>
           <div className="flex items-center gap-3">
             <NotificationBell />
@@ -102,7 +102,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
           </div>
         </div>
       </header>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 py-6">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 py-6">
         <aside className="md:sticky md:top-4 h-max rounded-lg border border-neutral-900 bg-neutral-900/40 p-2">
           <nav className="space-y-1">
             <NavLink href="/employee/dashboard" label="Dashboard" />

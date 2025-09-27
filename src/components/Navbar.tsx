@@ -2,22 +2,46 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePathname } from "next/navigation";
+
+function initialsFrom(name: string) {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
 
 export default function Navbar() {
   const { lang, setLang, dict } = useI18n();
   const [open, setOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [name, setName] = useState<string>("");
   const pathname = usePathname();
-  if (pathname.startsWith("/employee")) return null;
+  const hide = pathname.startsWith("/employee");
+
+  useEffect(() => {
+    try {
+      const has = document.cookie.split("; ").some((x) => x.startsWith("customer_token="));
+      setLoggedIn(has);
+      if (has) {
+        const stored = localStorage.getItem("customer_name") || "Customer";
+        setName(stored);
+      }
+    } catch {}
+  }, []);
+
+  const initials = useMemo(() => (name ? initialsFrom(name) : ""), [name]);
 
   const linkCls =
-    "px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors";
+    "px-3 py-2 text-sm font-medium text-white/90 hover:text-white transition-colors";
+
+  if (hide) return null;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/75 border-b border-neutral-800">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16">
         <div className="flex h-14 items-center justify-between">
           {/* Left: Logo + Brand */}
           <Link href="/" className="flex items-center gap-2">
@@ -41,6 +65,7 @@ export default function Navbar() {
               <Link href="#services" className={linkCls}>{dict.nav.services}</Link>
               <Link href="#about" className={linkCls}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls}>{dict.nav.contact}</Link>
+              <Link href="/account" className={linkCls}>Mi Cuenta</Link>
             </nav>
 
             {/* Language pill */}
@@ -56,7 +81,7 @@ export default function Navbar() {
                 aria-label="Español"
                 onClick={() => setLang("es")}
                 className={`relative z-10 px-3 py-1 text-xs rounded-full ${
-                  lang === "es" ? "text-black" : "text-gray-300 hover:text-white"
+                  lang === "es" ? "text-white" : "text-white/80 hover:text-white"
                 }`}
               >
                 {dict.langBadge.es}
@@ -65,12 +90,23 @@ export default function Navbar() {
                 aria-label="English"
                 onClick={() => setLang("en")}
                 className={`relative z-10 px-3 py-1 text-xs rounded-full ${
-                  lang === "en" ? "text-black" : "text-gray-300 hover:text-white"
+                  lang === "en" ? "text-white" : "text-white/80 hover:text-white"
                 }`}
               >
                 {dict.langBadge.en}
               </button>
             </div>
+
+            {/* Profile / Account */}
+            {loggedIn ? (
+              <Link href="/account" className="hidden md:flex items-center">
+                <div className="h-8 w-8 rounded-full bg-neutral-800 border border-[--gold] grid place-items-center text-xs font-semibold text-white">
+                  {initials}
+                </div>
+              </Link>
+            ) : (
+              <Link href="/account" className="hidden md:inline-block text-sm font-medium text-white/90 hover:text-white px-2 py-1">Mi Cuenta</Link>
+            )}
 
             {/* Mobile menu button */}
             <button
@@ -93,6 +129,7 @@ export default function Navbar() {
               <Link href="#services" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.services}</Link>
               <Link href="#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
+              <Link href="/account" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
             </nav>
           </div>
         )}

@@ -94,7 +94,7 @@ export default function ShopPage() {
 
   return (
     <main className="min-h-screen bg-neutral-950">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Shop</h1>
@@ -113,7 +113,7 @@ export default function ShopPage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {Array.from({length:8}).map((_,i)=> (
               <div key={i} className="rounded-lg border border-neutral-900 bg-neutral-900/40 p-4 animate-pulse">
                 <div className="h-36 rounded mb-3 bg-neutral-800/60" />
@@ -123,7 +123,7 @@ export default function ShopPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {products.map((p) => {
               const inCart = cart[p.id] || 0;
               const low = p.stock > 0 && p.stock <= 5;

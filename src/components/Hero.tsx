@@ -7,7 +7,7 @@ export default function Hero() {
   const { dict } = useI18n();
   return (
     <section id="home" className="bg-neutral-950 text-gray-100">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 py-16 sm:py-24">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
@@ -21,7 +21,7 @@ export default function Hero() {
             <div className="mt-8">
               <Link
                 href="#featured"
-                className="inline-flex items-center rounded-md px-5 py-3 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 transition"
+                className="inline-flex items-center rounded-md px-5 py-3 text-sm font-semibold bg-[--gold] text-white hover:brightness-95 transition"
               >
                 {dict.hero.cta}
               </Link>
