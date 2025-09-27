@@ -4,10 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const { lang, setLang, dict } = useI18n();
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  if (pathname.startsWith("/employee")) return null;
 
   const linkCls =
     "px-3 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors";

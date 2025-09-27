@@ -7,10 +7,15 @@ export async function POST(req: NextRequest) {
   const { email, password } = await req.json().catch(() => ({ email: "", password: "" }));
   if (!email || !password) return Response.json({ error: "Missing credentials" }, { status: 400 });
 
-  // Temporary: simple role assignment for scaffold
-  // - admin@multielectric.com -> admin
-  // - otherwise -> employee
-  const role = email.startsWith("admin@") ? "admin" : "employee";
+  // Default admin user (overridable by env vars)
+  const adminEmail = process.env.EMPLOYEE_DEFAULT_ADMIN_EMAIL || "admin@multielectric.com";
+  const adminPassword = process.env.EMPLOYEE_DEFAULT_ADMIN_PASSWORD || "Admin123!";
+
+  let role: "admin" | "employee" = "employee";
+  if (email === adminEmail && password === adminPassword) {
+    role = "admin";
+  }
+
   const me: Me = {
     id: "u-" + Math.random().toString(36).slice(2),
     name: email.split("@")[0],

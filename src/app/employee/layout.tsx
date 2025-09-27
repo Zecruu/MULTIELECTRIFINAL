@@ -14,6 +14,15 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
+  // Hide portal navigation/header on the login screen to keep it standalone
+  const [path, setPath] = useState<string>("/");
+  useEffect(() => { setPath(window.location.pathname); }, []);
+  const isLogin = path === "/employee/login";
+
+  if (isLogin) {
+    return <div className="min-h-screen bg-neutral-950 text-gray-100">{children}</div>;
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950 text-gray-100">
       <header className="border-b border-neutral-900 bg-neutral-950/80 backdrop-blur supports-[backdrop-filter]:bg-neutral-950/60">
