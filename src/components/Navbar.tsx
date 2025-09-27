@@ -66,7 +66,6 @@ export default function Navbar() {
               <Link href="#about" className={linkCls}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls}>{dict.nav.contact}</Link>
               <Link href="/shop" className={linkCls}>Shop</Link>
-              <Link href="/cuenta" className={linkCls}>Mi Cuenta</Link>
             </nav>
 
             {/* Language pill */}
