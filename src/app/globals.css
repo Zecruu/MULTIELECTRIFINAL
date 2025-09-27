@@ -2,7 +2,7 @@
 
 :root {
   --background: #0a0a0a;
-  --foreground: #ededed;
+  --foreground: #ffffff; /* force pure white text */
   --gold: #D4AF37;
 }
 
@@ -16,3 +16,20 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Enforce white text app-wide for readability on dark bg */
+.text-gray-100,
+.text-gray-200,
+.text-gray-300,
+.text-gray-400,
+.text-gray-500,
+.text-gray-600,
+.text-gray-700,
+.text-gray-800,
+.text-neutral-300,
+.text-neutral-400,
+.text-neutral-500 { color: #ffffff !important; }
+
+/***** Keep gold accent for highlights/buttons/branding *****/
+.text-gold, .gold { color: var(--gold); }
+.bg-gold { background-color: var(--gold); }
