@@ -23,7 +23,7 @@ export default function Navbar() {
 
   useEffect(() => {
     try {
-      const has = document.cookie.split("; ").some((x) => x.startsWith("customer_token="));
+      const has = document.cookie.split("; ").some((x) => x.startsWith("cust_access="));
       setLoggedIn(has);
       if (has) {
         const stored = localStorage.getItem("customer_name") || "Customer";
@@ -66,15 +66,16 @@ export default function Navbar() {
               <Link href="#about" className={linkCls}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls}>{dict.nav.contact}</Link>
               <Link href="/shop" className={linkCls}>Shop</Link>
-              <Link href="/account" className={linkCls}>Mi Cuenta</Link>
+              <Link href="/cuenta" className={linkCls}>Mi Cuenta</Link>
             </nav>
 
             {/* Language pill */}
-            <div className="relative grid grid-cols-2 items-center rounded-full bg-neutral-800 p-1 border border-neutral-700">
+            <div className="relative grid grid-cols-2 items-center rounded-full bg-neutral-800 p-1 border border-neutral-700 overflow-hidden">
               {/* gold overlay */}
               <span
                 aria-hidden
-                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[--gold] transition-transform duration-200 ease-out ${
+                style={{ backgroundColor: dict.gold }}
+                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full transition-transform duration-200 ease-out z-0 ${
                   lang === "en" ? "translate-x-full" : "translate-x-0"
                 }`}
               />
@@ -100,13 +101,13 @@ export default function Navbar() {
 
             {/* Profile / Account */}
             {loggedIn ? (
-              <Link href="/account" className="hidden md:flex items-center">
+              <Link href="/cuenta" className="hidden md:flex items-center">
                 <div className="h-8 w-8 rounded-full bg-neutral-800 border border-[--gold] grid place-items-center text-xs font-semibold text-white">
                   {initials}
                 </div>
               </Link>
             ) : (
-              <Link href="/account" className="hidden md:inline-block text-sm font-medium text-white/90 hover:text-white px-2 py-1">Mi Cuenta</Link>
+              <Link href="/cuenta" className="hidden md:inline-block text-sm font-medium text-white/90 hover:text-white px-2 py-1">Mi Cuenta</Link>
             )}
 
             {/* Mobile menu button */}
@@ -131,7 +132,7 @@ export default function Navbar() {
               <Link href="#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
               <Link href="#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
               <Link href="/shop" className={linkCls} onClick={() => setOpen(false)}>Shop</Link>
-              <Link href="/account" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
+              <Link href="/cuenta" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
             </nav>
           </div>
         )}
