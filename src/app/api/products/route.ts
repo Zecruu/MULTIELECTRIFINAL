@@ -3,6 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import type { Me } from "@/lib/auth";
 import { z } from "zod";
 import { sql } from "@vercel/postgres";
+import { ensureSchema } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,7 @@ function mapRowToVM(row: { id: string; sku: string; name: string; description: s
 export async function GET(req: NextRequest) {
   const me = await requireAuth(req);
   if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  await ensureSchema();
   const res = await sql<{ id: string; sku: string; name: string; description: string | null; price_cents: number; image_url: string | null; stock: number; updated_at: string }>`SELECT id, sku, name, description, price_cents, image_url, stock, updated_at FROM products ORDER BY updated_at DESC LIMIT 500`;
   const products = res.rows.map(mapRowToVM);
   return Response.json({ products });
@@ -70,6 +72,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const me = await requireAuth(req);
   if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
+  await ensureSchema();
   const body = await req.json().catch(() => ({}));
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return Response.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
