@@ -88,3 +88,30 @@ export async function updateOrderStatus(id: string, status: DbOrderStatus) {
   await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 }
 
+
+export interface OrderDetail {
+  id: string; order_number: string; status: DbOrderStatus; created_at: string;
+  subtotal_cents: number; tax_cents: number; total_cents: number; currency: string;
+  customer: { email: string; name: string | null };
+  items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>;
+}
+
+export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
+  const oRes = await sql.query<{ id: string; order_number: string; status: DbOrderStatus; created_at: string; subtotal_cents: number; tax_cents: number; total_cents: number; currency: string; customer_email: string; customer_name: string | null }>(`SELECT o.*, c.email as customer_email, c.name as customer_name FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.id=$1 LIMIT 1`, [id]);
+  if (oRes.rows.length === 0) return null;
+  const row = oRes.rows[0];
+  const iRes = await sql.query<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>(`SELECT id, product_id, sku, name, qty, unit_price_cents, line_total_cents FROM order_items WHERE order_id=$1 ORDER BY name`, [id]);
+  return {
+    id: row.id,
+    order_number: row.order_number,
+    status: row.status,
+    created_at: row.created_at,
+    subtotal_cents: row.subtotal_cents,
+    tax_cents: row.tax_cents,
+    total_cents: row.total_cents,
+    currency: row.currency,
+    customer: { email: row.customer_email, name: row.customer_name },
+    items: iRes.rows,
+  };
+}
+

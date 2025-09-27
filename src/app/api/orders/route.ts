@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { publishOrderEvent } from "@/lib/sse";
-import { listOrders, updateOrderStatus, type DbOrderStatus } from "@/lib/db";
+import { listOrders, updateOrderStatus, type DbOrderStatus, getOrderDetail } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -21,6 +21,12 @@ export async function GET(req: NextRequest) {
   const me = await requireAuth(req);
   if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  if (id) {
+    const order = await getOrderDetail(String(id));
+    if (!order) return Response.json({ error: "Not found" }, { status: 404 });
+    return Response.json({ order });
+  }
   const status = url.searchParams.get("status");
   const q = url.searchParams.get("q");
   const orders = await listOrders({ status: (status as DbOrderStatus | null), q });
