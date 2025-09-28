@@ -4,6 +4,8 @@ import { orderListeners, type OrderEvent } from "@/lib/sse";
 export const runtime = "nodejs";
 
 export async function GET(_req: NextRequest) {
+  void _req;
+
   const encoder = new TextEncoder();
   let keepAlive: ReturnType<typeof setInterval> | null = null;
   let listener: ((ev: OrderEvent)=>void) | null = null;

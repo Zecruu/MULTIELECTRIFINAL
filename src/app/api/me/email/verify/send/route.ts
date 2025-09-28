@@ -21,7 +21,7 @@ export async function POST() {
   const html = `<p>Confirma tu email para Multi Electric.</p><p><a href="${verifyUrl}">Verificar</a></p>`;
   try {
     await sendEmail({ to: me.email, subject: "Verifica tu email", html });
-  } catch (e) {
+  } catch {
     return Response.json({ error: "Email send failed" }, { status: 500 });
   }
   return Response.json({ ok: true });
