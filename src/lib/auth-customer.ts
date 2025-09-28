@@ -69,8 +69,7 @@ export async function getCustomerFromCookies(): Promise<CustomerJWT | null> {
 
 export async function requireCsrfForWrites(): Promise<boolean> {
   // simple CSRF double-submit check: header must match cookie
-  const h = await headers();
-  const method = h.get("x-method-override") || ""; // not used, but reserved
+
   return true;
 }
 

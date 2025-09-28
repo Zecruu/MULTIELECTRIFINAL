@@ -41,18 +41,18 @@ function mapRow(row: DBProductRow | null | undefined): DBProductRow | null {
   return row ?? null;
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const id = params.id;
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   await ensureSchema();
   const res = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
   if (res.rows.length === 0) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json({ product: mapRow(res.rows[0]) });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const me = await requireAuth(req);
   if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const id = params.id;
+  const { id } = await context.params;
   const body = await req.json().catch(() => ({}));
   const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
   const before = beforeRes.rows[0] || null;
@@ -74,10 +74,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return Response.json({ product: sel.rows[0] });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const me = await requireAuth(req);
   if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const id = params.id;
+  const { id } = await context.params;
   const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
   await sql`DELETE FROM products WHERE id=${id}`;
   await logAudit({ actorId: me.id, action: "product.delete", productId: id, before: beforeRes.rows[0] || null, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
