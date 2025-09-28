@@ -28,6 +28,32 @@ type ProductVM = {
   updatedAt: string;
 };
 
+// Row shape from the products table
+type DBProductRow = {
+  id: string;
+  sku: string | null;
+  name: string | null;
+  name_en: string | null;
+  name_es: string | null;
+  description: string | null;
+  description_en: string | null;
+  description_es: string | null;
+  category: string | null;
+  price_cents: number | null;
+  compare_at_cents: number | null;
+  stock: number | null;
+  low_stock_threshold: number | null;
+  status: string | null;
+  featured: boolean | null;
+  hot: boolean | null;
+  visible: boolean | null;
+  images: Array<{ url: string; alt?: string | null; primary?: boolean }> | null;
+  image_url?: string | null;
+  slug: string | null;
+  updated_at: string | null;
+};
+
+
 const BaseSchema = z.object({
   sku: z.string().min(1).optional(),
   category: z.string().min(1),
@@ -78,7 +104,7 @@ async function requireAuth(req: NextRequest): Promise<Me | null> {
   try { return await verifyToken(token, process.env.JWT_SECRET || "dev-secret-change"); } catch { return null; }
 }
 
-function mapRowToVM(row: any): ProductVM {
+function mapRowToVM(row: DBProductRow): ProductVM {
   return {
     id: row.id,
     sku: row.sku,
@@ -114,7 +140,7 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get("category");
   const q = searchParams.get("query");
   const where: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number> = [];
   if (status) { params.push(status); where.push(`status = $${params.length}`); }
   if (category) { params.push(category); where.push(`category = $${params.length}`); }
   if (q) {
@@ -124,7 +150,7 @@ export async function GET(req: NextRequest) {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const query = `SELECT * FROM products ${whereSql} ORDER BY updated_at DESC LIMIT 500`;
-  const res = await sql.query<any>(query, params);
+  const res = await sql.query<DBProductRow>(query, params);
   const products = res.rows.map(mapRowToVM);
   return Response.json({ products });
 }
@@ -142,7 +168,7 @@ export async function POST(req: NextRequest) {
   const price_cents = Math.round((d.price ?? 0) * 100);
   const compare_at_cents = d.compare_at_price !== undefined ? Math.round(d.compare_at_price * 100) : null;
   const imagesNorm = (d.images && d.images.length)
-    ? d.images.map((x: any, idx: number) => typeof x === "string" ? ({ url: x, primary: idx === 0 }) : ({ url: x.url, alt: x.alt, primary: x.primary ?? idx === 0 }))
+    ? d.images.map((x: string | { url: string; alt?: string; primary?: boolean }, idx: number) => typeof x === "string" ? ({ url: x, primary: idx === 0 }) : ({ url: x.url, alt: x.alt, primary: x.primary ?? idx === 0 }))
     : undefined;
   const name_en = d.name_en ?? "";
   const slug = (d.slug?.trim() || (name_en ? slugify(name_en) : null));
@@ -154,12 +180,13 @@ export async function POST(req: NextRequest) {
       ${sku}, ${name_en || d.name_es || ""}, ${name_en || null}, ${d.name_es ?? null}, ${d.description_en ?? null}, ${d.description_en ?? null}, ${d.description_es ?? null}, ${d.category}, ${d.tags ?? null}, ${d.status}, ${price_cents}, ${compare_at_cents}, ${d.stock ?? 0}, ${d.low_stock_threshold ?? 0}, ${d.taxable ?? false}, ${imagesNorm ? JSON.stringify(imagesNorm) : null}, ${d.featured ?? false}, ${d.hot ?? false}, ${d.visible ?? true}, ${slug ?? null}, ${d.meta_title_en ?? null}, ${d.meta_desc_en ?? null}, ${d.meta_title_es ?? null}, ${d.meta_desc_es ?? null}
     ) RETURNING id`;
 
-    const sel = await sql.query<any>("SELECT * FROM products WHERE id = $1", [ins.rows[0].id]);
+    const sel = await sql.query<DBProductRow>("SELECT * FROM products WHERE id = $1", [ins.rows[0].id]);
     const product = mapRowToVM(sel.rows[0]);
     await logAudit({ actorId: me.id, action: "product.create", productId: product.id, after: product, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
     return Response.json({ product });
-  } catch (err: any) {
-    const code = err?.code || err?.originalError?.code;
+  } catch (err: unknown) {
+    type PgError = { code?: string; originalError?: { code?: string } };
+    const code = (err as PgError)?.code || (err as PgError)?.originalError?.code;
     if (code === "23505") {
       // unique violation
       return Response.json({ error: "Conflict", message: "SKU or slug already exists" }, { status: 409 });
@@ -180,7 +207,7 @@ export async function PATCH(req: NextRequest) {
   const d = parsed.data;
 
   // Load before for audit
-  const beforeRes = await sql.query<any>("SELECT * FROM products WHERE id=$1", [id]);
+  const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
   const before = beforeRes.rows[0] || null;
 
   const price_cents = d.price !== undefined ? Math.round(d.price * 100) : undefined;
@@ -216,13 +243,14 @@ export async function PATCH(req: NextRequest) {
       updated_at = now()
     WHERE id = ${id}`;
 
-    const sel = await sql.query<any>("SELECT * FROM products WHERE id = $1", [id]);
+    const sel = await sql.query<DBProductRow>("SELECT * FROM products WHERE id = $1", [id]);
     if (sel.rows.length === 0) return Response.json({ error: "Not found" }, { status: 404 });
     const product = mapRowToVM(sel.rows[0]);
     await logAudit({ actorId: me.id, action: "product.update", productId: id, before, after: product, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
     return Response.json({ product });
-  } catch (err: any) {
-    const code = err?.code || err?.originalError?.code;
+  } catch (err: unknown) {
+    type PgError = { code?: string; originalError?: { code?: string } };
+    const code = (err as PgError)?.code || (err as PgError)?.originalError?.code;
     if (code === "23505") {
       return Response.json({ error: "Conflict", message: "SKU or slug already exists" }, { status: 409 });
     }
@@ -236,7 +264,7 @@ export async function DELETE(req: NextRequest) {
   if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
-  const beforeRes = await sql.query<any>("SELECT * FROM products WHERE id=$1", [id]);
+  const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
   await sql`DELETE FROM products WHERE id=${id}`;
   await logAudit({ actorId: me.id, action: "product.delete", productId: id, before: beforeRes.rows[0] || null, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
   return Response.json({ ok: true });
