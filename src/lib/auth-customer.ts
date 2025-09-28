@@ -11,7 +11,7 @@ export type CustomerJWT = {
   sid?: string; // session id
 };
 
-function seconds(n: number) { return n; }
+
 
 export async function signAccess(payload: CustomerJWT) {
   const ttl = Number(process.env.ACCESS_TOKEN_TTL_SEC || 1800);
@@ -47,7 +47,7 @@ export async function verifyRefresh(token: string): Promise<CustomerJWT> {
 
 export async function setAuthCookies({ access, refresh, csrf }: { access?: string; refresh?: string; csrf?: string }) {
   const c = await cookies();
-  const base = "; Path=/; SameSite=Lax; Secure";
+
   if (access) c.set("cust_access", access, { httpOnly: true, sameSite: "lax", secure: true, path: "/" });
   if (refresh) c.set("cust_refresh", refresh, { httpOnly: true, sameSite: "lax", secure: true, path: "/" });
   if (csrf) c.set("csrf", csrf, { httpOnly: false, sameSite: "lax", secure: true, path: "/" });

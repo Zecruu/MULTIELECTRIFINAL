@@ -84,7 +84,7 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
         stock: Number(v.stock || 0),
         low_stock_threshold: v.low_stock_threshold ? Number(v.low_stock_threshold) : undefined,
         images: [...(v.images || []), ...uploaded],
-      } as any;
+      };
 
       const method = v.id ? "PATCH" : "POST";
       const url = "/api/products" + (v.id ? `?id=${v.id}` : "");

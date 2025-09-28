@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest) {
+  void _req;
+
   const rawMongoUri = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
   const normalized = rawMongoUri.trim().replace(/^['"]|['"]$/g, "");
   const usedVar = process.env.MONGODB_URI ? "MONGODB_URI" : (process.env.MONGO_URI ? "MONGO_URI" : null);

@@ -43,7 +43,7 @@ export default function CuentaClient() {
       const csrf = getCookie("csrf");
       const res = await fetch("/api/me/profile", { method: "PATCH", headers: { "content-type":"application/json", "x-csrf": csrf||"" }, body: JSON.stringify({ name: me.name, phone: me.phone }) });
       if (!res.ok) throw new Error(await res.text());
-    } catch (e) { setError("No se pudo guardar el perfil"); }
+    } catch { setError("No se pudo guardar el perfil"); }
     finally { setSavingProfile(false); }
   }
 

@@ -19,7 +19,7 @@ export default function ShopPage() {
     try {
       const j = await fetch("/api/store/products", { cache: "no-store" }).then((r) => r.json());
       setProducts(j.products || []);
-    } catch (e) {
+    } catch {
       setError("Failed to load products");
     } finally {
       setLoading(false);

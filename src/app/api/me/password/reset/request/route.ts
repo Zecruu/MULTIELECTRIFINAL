@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const html = `<p>Solicitaste restablecer tu contraseña.</p><p><a href="${resetUrl}">Restablecer contraseña</a></p>`;
   try {
     await sendEmail({ to: email, subject: "Restablecer contraseña", html });
-  } catch (e) {
+  } catch {
     return Response.json({ error: "Email send failed" }, { status: 500 });
   }
   return Response.json({ ok: true });
