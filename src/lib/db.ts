@@ -7,9 +7,28 @@ export interface DbCustomer { id: string; email: string; name?: string | null; p
 export interface DbOrder { id: string; order_number: string; customer_id: string; status: DbOrderStatus; subtotal_cents: number; tax_cents: number; total_cents: number; currency: string; payment_intent_id?: string | null; stripe_session_id?: string | null; created_at: string; }
 export interface DbOrderItem { id: string; order_id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number; }
 
+function ensurePostgresEnv() {
+  // Help @vercel/postgres find a connection string in varied env setups
+  const candidates = [
+    process.env.POSTGRES_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.DATABASE_URL,
+    process.env.SUPABASE_DB_URL,
+  ].filter(Boolean) as string[];
+  if (!process.env.POSTGRES_URL && candidates.length > 0) {
+    process.env.POSTGRES_URL = candidates[0];
+  }
+  if (!process.env.POSTGRES_URL_NON_POOLING && process.env.POSTGRES_URL) {
+    process.env.POSTGRES_URL_NON_POOLING = process.env.POSTGRES_URL;
+  }
+}
+
 // Helpers
 export async function ensureSchema() {
-  // Ensure UUID generation functions are available
+  // Ensure the DB connection string is wired even if the host uses a different var
+  ensurePostgresEnv();
+
+  // Best-effort: ignore if extensions cannot be installed (not required anymore)
   try { await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`; } catch {}
   try { await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`; } catch {}
 
@@ -150,3 +169,20 @@ export async function logAudit(params: { actorId?: string | null; action: string
     VALUES (${id}, ${actorId ?? null}, ${action}, ${productId ?? null}, ${before ? JSON.stringify(before) : null}, ${after ? JSON.stringify(after) : null}, ${ip ?? null}, ${userAgent ?? null});`;
 }
 
+export async function getDashboardSummary() {
+  await ensureSchema();
+  // Active orders: exclude Canceled and Refunded
+  const activeRes = await sql<{ count: number }>`SELECT COUNT(*)::int AS count FROM orders WHERE status NOT IN ('Canceled','Refunded')`;
+  // Low stock: stock <= low_stock_threshold when threshold is set (>0)
+  const lowStockRes = await sql<{ count: number }>`SELECT COUNT(*)::int AS count FROM products WHERE COALESCE(low_stock_threshold,0) > 0 AND stock <= low_stock_threshold`;
+  // Customers total
+  const customersRes = await sql<{ count: number }>`SELECT COUNT(*)::int AS count FROM customers`;
+  // Revenue last 30 days: sum of total_cents for fulfilled orders
+  const revenueRes = await sql<{ sum: number }>`SELECT COALESCE(SUM(total_cents),0)::int AS sum FROM orders WHERE status IN ('Fulfilled','Ready for Pickup') AND created_at >= now() - interval '30 days'`;
+  return {
+    activeOrders: activeRes.rows[0].count,
+    lowStockAlerts: lowStockRes.rows[0].count,
+    customers: customersRes.rows[0].count,
+    revenueCents30d: revenueRes.rows[0].sum,
+  };
+}

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import type { PresignedPostOptions } from "@aws-sdk/s3-presigned-post";
 import { S3Client } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { getEnv } from "@/lib/env";
@@ -42,20 +43,26 @@ export async function POST(_req: NextRequest) {
     const maxBytes = Math.round(1024 * 1024 * (maxSizeMB ?? env.S3_MAX_UPLOAD_MB));
     const key = `products/${crypto.randomUUID()}/${filename}`;
 
-    const { url, fields } = await createPresignedPost(client, {
+    const baseOptions: PresignedPostOptions = {
       Bucket: env.S3_BUCKET,
       Key: key,
       Conditions: [
         ["content-length-range", 0, maxBytes],
-        { acl: "public-read" },
         ["starts-with", "$Content-Type", contentType.split("/")[0] + "/"],
       ],
       Fields: {
-        acl: "public-read",
         "Content-Type": contentType,
       },
-      Expires: 60, // seconds
-    });
+      Expires: 60,
+    };
+    if (env.S3_USE_ACL) {
+      const conds = (baseOptions.Conditions ?? []) as NonNullable<PresignedPostOptions["Conditions"]>;
+      conds.push({ acl: "public-read" });
+      baseOptions.Conditions = conds;
+      baseOptions.Fields = { ...baseOptions.Fields, acl: "public-read" } as Record<string, string>;
+    }
+
+    const { url, fields } = await createPresignedPost(client, baseOptions);
     const typedFields: Record<string, string> = fields as Record<string, string>;
 
     const publicUrl = env.S3_PUBLIC_BASE_URL

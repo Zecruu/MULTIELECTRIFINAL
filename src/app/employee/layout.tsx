@@ -9,7 +9,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   useEffect(() => { setPath(window.location.pathname); }, []);
   const active = path === href;
   return (
-    <Link href={href} className={`block rounded-md px-3 py-2 text-sm ${active ? "bg-[--gold] text-black" : "hover:bg-neutral-800"}`}>
+    <Link href={href} className={`block rounded-md px-3 py-2 text-sm ${active ? "border border-[--gold]/60 bg-neutral-900/60 text-[--gold]" : "hover:bg-neutral-800"}`}>
       {label}
     </Link>
   );

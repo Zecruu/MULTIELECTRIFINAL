@@ -7,6 +7,7 @@ const EnvSchema = z.object({
   S3_BUCKET: z.string().min(1),
   S3_PUBLIC_BASE_URL: z.string().url().optional(),
   S3_MAX_UPLOAD_MB: z.coerce.number().optional().default(10),
+  S3_USE_ACL: z.coerce.boolean().optional().default(false),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -18,7 +19,8 @@ export function getEnv(): Env {
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: process.env.AWS_REGION,
-    S3_BUCKET: process.env.S3_BUCKET,
+    // Accept common aliases for bucket name used by various hosts
+    S3_BUCKET: process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || process.env.S3_BUCKET_NAME,
     S3_PUBLIC_BASE_URL: process.env.S3_PUBLIC_BASE_URL,
     S3_MAX_UPLOAD_MB: process.env.S3_MAX_UPLOAD_MB,
   });
