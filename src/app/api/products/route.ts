@@ -174,11 +174,39 @@ export async function POST(req: NextRequest) {
   const slug = (d.slug?.trim() || (name_en ? slugify(name_en) : null));
 
   try {
-    const ins = await sql<{ id: string }>`INSERT INTO products (
-      sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es
-    ) VALUES (
-      ${sku}, ${name_en || d.name_es || ""}, ${name_en || null}, ${d.name_es ?? null}, ${d.description_en ?? null}, ${d.description_en ?? null}, ${d.description_es ?? null}, ${d.category}, ${d.tags ?? null}, ${d.status}, ${price_cents}, ${compare_at_cents}, ${d.stock ?? 0}, ${d.low_stock_threshold ?? 0}, ${d.taxable ?? false}, ${imagesNorm ? JSON.stringify(imagesNorm) : null}, ${d.featured ?? false}, ${d.hot ?? false}, ${d.visible ?? true}, ${slug ?? null}, ${d.meta_title_en ?? null}, ${d.meta_desc_en ?? null}, ${d.meta_title_es ?? null}, ${d.meta_desc_es ?? null}
-    ) RETURNING id`;
+    const ins = await sql.query<{ id: string }>(
+      `INSERT INTO products (
+        sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
+      ) RETURNING id`,
+      [
+        sku,
+        name_en || d.name_es || "",
+        name_en || null,
+        d.name_es ?? null,
+        d.description_en ?? null,
+        d.description_en ?? null,
+        d.description_es ?? null,
+        d.category,
+        d.tags ?? null,
+        d.status,
+        price_cents,
+        compare_at_cents,
+        d.stock ?? 0,
+        d.low_stock_threshold ?? 0,
+        d.taxable ?? false,
+        imagesNorm ? JSON.stringify(imagesNorm) : null,
+        d.featured ?? false,
+        d.hot ?? false,
+        d.visible ?? true,
+        slug ?? null,
+        d.meta_title_en ?? null,
+        d.meta_desc_en ?? null,
+        d.meta_title_es ?? null,
+        d.meta_desc_es ?? null,
+      ]
+    );
 
     const sel = await sql.query<DBProductRow>("SELECT * FROM products WHERE id = $1", [ins.rows[0].id]);
     const product = mapRowToVM(sel.rows[0]);
@@ -216,32 +244,60 @@ export async function PATCH(req: NextRequest) {
   const slug = d.slug ? d.slug : undefined;
 
   try {
-    await sql`UPDATE products SET
-      name = COALESCE(${d.name_en ?? null}, name),
-      name_en = COALESCE(${d.name_en ?? null}, name_en),
-      name_es = COALESCE(${d.name_es ?? null}, name_es),
-      description = COALESCE(${d.description_en ?? null}, description),
-      description_en = COALESCE(${d.description_en ?? null}, description_en),
-      description_es = COALESCE(${d.description_es ?? null}, description_es),
-      category = COALESCE(${d.category ?? null}, category),
-      tags = COALESCE(${d.tags ?? null}, tags),
-      status = COALESCE(${d.status ?? null}, status),
-      price_cents = COALESCE(${price_cents ?? null}, price_cents),
-      compare_at_cents = COALESCE(${compare_at_cents ?? null}, compare_at_cents),
-      stock = COALESCE(${d.stock ?? null}, stock),
-      low_stock_threshold = COALESCE(${d.low_stock_threshold ?? null}, low_stock_threshold),
-      taxable = COALESCE(${d.taxable ?? null}, taxable),
-      images = COALESCE(${images ?? null}, images),
-      featured = COALESCE(${d.featured ?? null}, featured),
-      hot = COALESCE(${d.hot ?? null}, hot),
-      visible = COALESCE(${d.visible ?? null}, visible),
-      slug = COALESCE(${slug ?? null}, slug),
-      meta_title_en = COALESCE(${d.meta_title_en ?? null}, meta_title_en),
-      meta_desc_en = COALESCE(${d.meta_desc_en ?? null}, meta_desc_en),
-      meta_title_es = COALESCE(${d.meta_title_es ?? null}, meta_title_es),
-      meta_desc_es = COALESCE(${d.meta_desc_es ?? null}, meta_desc_es),
-      updated_at = now()
-    WHERE id = ${id}`;
+    await sql.query(
+      `UPDATE products SET
+        name = COALESCE($1, name),
+        name_en = COALESCE($2, name_en),
+        name_es = COALESCE($3, name_es),
+        description = COALESCE($4, description),
+        description_en = COALESCE($5, description_en),
+        description_es = COALESCE($6, description_es),
+        category = COALESCE($7, category),
+        tags = COALESCE($8, tags),
+        status = COALESCE($9, status),
+        price_cents = COALESCE($10, price_cents),
+        compare_at_cents = COALESCE($11, compare_at_cents),
+        stock = COALESCE($12, stock),
+        low_stock_threshold = COALESCE($13, low_stock_threshold),
+        taxable = COALESCE($14, taxable),
+        images = COALESCE($15, images),
+        featured = COALESCE($16, featured),
+        hot = COALESCE($17, hot),
+        visible = COALESCE($18, visible),
+        slug = COALESCE($19, slug),
+        meta_title_en = COALESCE($20, meta_title_en),
+        meta_desc_en = COALESCE($21, meta_desc_en),
+        meta_title_es = COALESCE($22, meta_title_es),
+        meta_desc_es = COALESCE($23, meta_desc_es),
+        updated_at = now()
+      WHERE id = $24`,
+      [
+        d.name_en ?? null,
+        d.name_en ?? null,
+        d.name_es ?? null,
+        d.description_en ?? null,
+        d.description_en ?? null,
+        d.description_es ?? null,
+        d.category ?? null,
+        d.tags ?? null,
+        d.status ?? null,
+        price_cents ?? null,
+        compare_at_cents ?? null,
+        d.stock ?? null,
+        d.low_stock_threshold ?? null,
+        d.taxable ?? null,
+        images ?? null,
+        d.featured ?? null,
+        d.hot ?? null,
+        d.visible ?? null,
+        slug ?? null,
+        d.meta_title_en ?? null,
+        d.meta_desc_en ?? null,
+        d.meta_title_es ?? null,
+        d.meta_desc_es ?? null,
+        id,
+      ]
+    );
 
     const sel = await sql.query<DBProductRow>("SELECT * FROM products WHERE id = $1", [id]);
     if (sel.rows.length === 0) return Response.json({ error: "Not found" }, { status: 404 });
