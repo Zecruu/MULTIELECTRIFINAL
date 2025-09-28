@@ -5,8 +5,13 @@ let cachedDb: Db | null = null;
 
 export async function getDb(): Promise<Db> {
   if (cachedDb) return cachedDb;
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  const raw = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? "";
+  const uri = raw.trim().replace(/^['"]|['"]$/g, ""); // strip accidental quotes
   if (!uri) throw new Error("Missing MONGODB_URI env var");
+  const hasValidScheme = uri.startsWith("mongodb://") || uri.startsWith("mongodb+srv://");
+  if (!hasValidScheme) {
+    throw new Error("Invalid MongoDB URI scheme. Expected to start with mongodb:// or mongodb+srv:// (no surrounding quotes)");
+  }
   if (!client) client = new MongoClient(uri);
   // In serverless, connect() is idempotent and uses pooled connections under the hood
   await client.connect();
