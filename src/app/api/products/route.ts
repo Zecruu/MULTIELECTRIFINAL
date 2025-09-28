@@ -117,7 +117,7 @@ function mapRowToVM(row: DBProductRow): ProductVM {
     compare_at_price: row.compare_at_cents ? row.compare_at_cents / 100 : null,
     stock: row.stock ?? 0,
     low_stock_threshold: row.low_stock_threshold ?? 0,
-    status: (row.status as ProductVM["status"]) || (row.stock > 0 ? "active" : "out_of_stock"),
+    status: (row.status as ProductVM["status"]) || ((row.stock ?? 0) > 0 ? "active" : "out_of_stock"),
     featured: row.featured ?? false,
     hot: row.hot ?? false,
     visible: row.visible ?? true,
