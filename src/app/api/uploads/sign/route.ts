@@ -1,2 +1,2 @@
-export { POST, runtime } from "../presign/route";
-
+export const runtime = "nodejs";
+export { POST } from "../presign/route";

@@ -179,13 +179,15 @@ export async function POST(req: NextRequest) {
   const slug = (d.slug?.trim() || (name_en ? slugify(name_en) : null));
 
   try {
+    const id = crypto.randomUUID();
     const ins = await sql.query<{ id: string }>(
       `INSERT INTO products (
-        sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es
+        id, sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
       ) RETURNING id`,
       [
+        id,
         sku,
         name_en || d.name_es || "",
         name_en || null,

@@ -9,8 +9,12 @@ export interface DbOrderItem { id: string; order_id: string; product_id: string;
 
 // Helpers
 export async function ensureSchema() {
+  // Ensure UUID generation functions are available
+  try { await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`; } catch {}
+  try { await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`; } catch {}
+
   // Safe idempotent DDL for local dev; in production use migrations
-  await sql`CREATE TABLE IF NOT EXISTS products (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sku text UNIQUE NOT NULL, name text NOT NULL, description text, price_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', image_url text, stock integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
+  await sql`CREATE TABLE IF NOT EXISTS products (id uuid PRIMARY KEY, sku text UNIQUE NOT NULL, name text NOT NULL, description text, price_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', image_url text, stock integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
   // Evolve products table for admin inventory features
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_en text`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_es text`;
@@ -33,16 +37,17 @@ export async function ensureSchema() {
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_desc_es text`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS products_slug_key ON products(slug)`;
 
-  await sql`CREATE TABLE IF NOT EXISTS customers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, name text, phone text, address_json jsonb, created_at timestamptz NOT NULL DEFAULT now());`;
-  await sql`CREATE TABLE IF NOT EXISTS orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_number text UNIQUE NOT NULL, customer_id uuid REFERENCES customers(id), status text NOT NULL, subtotal_cents integer NOT NULL, tax_cents integer NOT NULL, total_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', payment_intent_id text, stripe_session_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
-  await sql`CREATE TABLE IF NOT EXISTS order_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid REFERENCES orders(id) ON DELETE CASCADE, product_id uuid REFERENCES products(id), sku text NOT NULL, name text NOT NULL, qty integer NOT NULL, unit_price_cents integer NOT NULL, line_total_cents integer NOT NULL);`;
+  await sql`CREATE TABLE IF NOT EXISTS customers (id uuid PRIMARY KEY, email text UNIQUE NOT NULL, name text, phone text, address_json jsonb, created_at timestamptz NOT NULL DEFAULT now());`;
+  await sql`CREATE TABLE IF NOT EXISTS orders (id uuid PRIMARY KEY, order_number text UNIQUE NOT NULL, customer_id uuid REFERENCES customers(id), status text NOT NULL, subtotal_cents integer NOT NULL, tax_cents integer NOT NULL, total_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', payment_intent_id text, stripe_session_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
+  await sql`CREATE TABLE IF NOT EXISTS order_items (id uuid PRIMARY KEY, order_id uuid REFERENCES orders(id) ON DELETE CASCADE, product_id uuid REFERENCES products(id), sku text NOT NULL, name text NOT NULL, qty integer NOT NULL, unit_price_cents integer NOT NULL, line_total_cents integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS order_sequences (year integer PRIMARY KEY, seq integer NOT NULL);`;
-  await sql`CREATE TABLE IF NOT EXISTS audit_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_id text, action text NOT NULL, product_id uuid, before jsonb, after jsonb, ip text, user_agent text, ts timestamptz NOT NULL DEFAULT now());`;
+  await sql`CREATE TABLE IF NOT EXISTS audit_logs (id uuid PRIMARY KEY, actor_id text, action text NOT NULL, product_id uuid, before jsonb, after jsonb, ip text, user_agent text, ts timestamptz NOT NULL DEFAULT now());`;
 }
 
 export async function upsertCustomer(email: string, name?: string | null, phone?: string | null, address_json?: Record<string, unknown> | null) {
-  const res = await sql<{ id: string }>`INSERT INTO customers (email, name, phone, address_json)
-    VALUES (${email}, ${name ?? null}, ${phone ?? null}, ${address_json ? JSON.stringify(address_json) : null})
+  const id = crypto.randomUUID();
+  const res = await sql<{ id: string }>`INSERT INTO customers (id, email, name, phone, address_json)
+    VALUES (${id}, ${email}, ${name ?? null}, ${phone ?? null}, ${address_json ? JSON.stringify(address_json) : null})
     ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, phone = EXCLUDED.phone, address_json = EXCLUDED.address_json
     RETURNING id;`;
   return res.rows[0].id;
@@ -75,15 +80,15 @@ export async function createOrder(params: {
   const customer_id = await upsertCustomer(params.customer.email, params.customer.name ?? null, params.customer.phone ?? null, params.customer.address ?? null);
   const { order_number } = await nextOrderNumber();
 
-  const orderRes = await sql<{ id: string }>`INSERT INTO orders (order_number, customer_id, status, subtotal_cents, tax_cents, total_cents, currency, payment_intent_id, stripe_session_id)
-    VALUES (${order_number}, ${customer_id}, ${'Pending'}, ${params.totals.subtotal_cents}, ${params.totals.tax_cents}, ${params.totals.total_cents}, ${params.totals.currency}, ${params.stripe.payment_intent_id ?? null}, ${params.stripe.session_id ?? null})
-    RETURNING id;`;
-  const order_id = orderRes.rows[0].id;
+  const order_id = crypto.randomUUID();
+  await sql`INSERT INTO orders (id, order_number, customer_id, status, subtotal_cents, tax_cents, total_cents, currency, payment_intent_id, stripe_session_id)
+    VALUES (${order_id}, ${order_number}, ${customer_id}, ${'Pending'}, ${params.totals.subtotal_cents}, ${params.totals.tax_cents}, ${params.totals.total_cents}, ${params.totals.currency}, ${params.stripe.payment_intent_id ?? null}, ${params.stripe.session_id ?? null});`;
 
   for (const li of params.lineItems) {
     const p = li.product;
-    await sql`INSERT INTO order_items (order_id, product_id, sku, name, qty, unit_price_cents, line_total_cents)
-      VALUES (${order_id}, ${p.id}, ${p.sku}, ${p.name}, ${li.qty}, ${p.price_cents}, ${p.price_cents * li.qty});`;
+    const item_id = crypto.randomUUID();
+    await sql`INSERT INTO order_items (id, order_id, product_id, sku, name, qty, unit_price_cents, line_total_cents)
+      VALUES (${item_id}, ${order_id}, ${p.id}, ${p.sku}, ${p.name}, ${li.qty}, ${p.price_cents}, ${p.price_cents * li.qty});`;
     await sql`UPDATE products SET stock = GREATEST(stock - ${li.qty}, 0) WHERE id = ${p.id};`;
   }
 
@@ -140,7 +145,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
 
 export async function logAudit(params: { actorId?: string | null; action: string; productId?: string | null; before?: unknown; after?: unknown; ip?: string | null; userAgent?: string | null; }) {
   const { actorId, action, productId, before, after, ip, userAgent } = params;
-  await sql`INSERT INTO audit_logs (actor_id, action, product_id, before, after, ip, user_agent)
-    VALUES (${actorId ?? null}, ${action}, ${productId ?? null}, ${before ? JSON.stringify(before) : null}, ${after ? JSON.stringify(after) : null}, ${ip ?? null}, ${userAgent ?? null});`;
+  const id = crypto.randomUUID();
+  await sql`INSERT INTO audit_logs (id, actor_id, action, product_id, before, after, ip, user_agent)
+    VALUES (${id}, ${actorId ?? null}, ${action}, ${productId ?? null}, ${before ? JSON.stringify(before) : null}, ${after ? JSON.stringify(after) : null}, ${ip ?? null}, ${userAgent ?? null});`;
 }
 

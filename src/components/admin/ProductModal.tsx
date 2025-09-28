@@ -50,7 +50,11 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
 
   async function upload(file: File) {
     const presign = await fetch("/api/uploads/sign", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ filename: file.name, contentType: file.type }) });
-    if (!presign.ok) throw new Error("presign failed");
+    if (!presign.ok) {
+      const j = await presign.json().catch(()=>({}));
+      const msg = (j?.message || j?.error || "presign failed");
+      throw new Error(msg);
+    }
     const { url, fields, publicUrl } = await presign.json();
     const fd = new FormData();
     Object.entries(fields).forEach(([k, val]) => fd.append(k, val as string));
