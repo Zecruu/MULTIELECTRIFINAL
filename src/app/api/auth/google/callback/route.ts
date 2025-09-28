@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCollection, type CustomerDoc } from "@/lib/mongo";
 import { signAccess, signRefresh } from "@/lib/auth-customer";
@@ -85,8 +85,20 @@ export async function GET(req: NextRequest) {
   c.set("cust_refresh", refresh, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
   c.delete("g_state");
 
-  let next = "/cuenta";
-  try { next = JSON.parse(Buffer.from(state, "base64url").toString()).next || "/cuenta"; } catch {}
-  return Response.redirect(next, 302);
+  let nextPath = "/cuenta";
+  try {
+    const parsed = JSON.parse(Buffer.from(state, "base64url").toString());
+    if (typeof parsed?.next === "string" && parsed.next.trim()) {
+      nextPath = parsed.next.trim();
+    }
+  } catch {}
+
+  if (!nextPath.startsWith("/")) {
+    nextPath = "/cuenta";
+  }
+
+  // Build absolute URL using origin to avoid relative URL parsing issues
+  const destination = `${origin}${nextPath}`;
+  return NextResponse.redirect(destination);
 }
 
