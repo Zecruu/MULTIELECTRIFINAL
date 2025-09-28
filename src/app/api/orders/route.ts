@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { publishOrderEvent } from "@/lib/sse";
-import { listOrders, updateOrderStatus, type DbOrderStatus, getOrderDetail } from "@/lib/db";
+import { listOrders, updateOrderStatus, type DbOrderStatus, getOrderDetail, ensureSchema } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -18,31 +18,43 @@ async function requireAuth(req: NextRequest): Promise<Me | null> {
 }
 
 export async function GET(req: NextRequest) {
-  const me = await requireAuth(req);
-  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const url = new URL(req.url);
-  const id = url.searchParams.get("id");
-  if (id) {
-    const order = await getOrderDetail(String(id));
-    if (!order) return Response.json({ error: "Not found" }, { status: 404 });
-    return Response.json({ order });
+  try {
+    const me = await requireAuth(req);
+    if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    await ensureSchema();
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (id) {
+      const order = await getOrderDetail(String(id));
+      if (!order) return Response.json({ error: "Not found" }, { status: 404 });
+      return Response.json({ order });
+    }
+    const status = url.searchParams.get("status");
+    const q = url.searchParams.get("q");
+    const orders = await listOrders({ status: (status as DbOrderStatus | null), q });
+    return Response.json({ orders });
+  } catch (err) {
+    console.error("orders.GET error", err);
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
-  const status = url.searchParams.get("status");
-  const q = url.searchParams.get("q");
-  const orders = await listOrders({ status: (status as DbOrderStatus | null), q });
-  return Response.json({ orders });
 }
 
 export async function PATCH(req: NextRequest) {
-  const me = await requireAuth(req);
-  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const url = new URL(req.url);
-  const id = String(url.searchParams.get("id"));
-  type Body = { status: DbOrderStatus };
-  const body = (await req.json().catch(() => ({ } as Body))) as Body;
-  const status = body.status as DbOrderStatus;
-  await updateOrderStatus(id, status);
-  publishOrderEvent({ type: "order-updated", payload: { id, status } });
-  return Response.json({ ok: true });
+  try {
+    const me = await requireAuth(req);
+    if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    await ensureSchema();
+    const url = new URL(req.url);
+    const id = String(url.searchParams.get("id"));
+    type Body = { status: DbOrderStatus };
+    const body = (await req.json().catch(() => ({ } as Body))) as Body;
+    const status = body.status as DbOrderStatus;
+    await updateOrderStatus(id, status);
+    publishOrderEvent({ type: "order-updated", payload: { id, status } });
+    return Response.json({ ok: true });
+  } catch (err) {
+    console.error("orders.PATCH error", err);
+    return Response.json({ error: "Server error" }, { status: 500 });
+  }
 }
 

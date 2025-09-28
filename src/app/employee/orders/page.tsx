@@ -37,8 +37,10 @@ export default function OrdersPage() {
     const url = new URL(location.origin + "/api/orders");
     if (q) url.searchParams.set("q", q);
     if (status) url.searchParams.set("status", status);
-    const j = await fetch(url.toString()).then(r=>r.json());
-    setOrders(j.orders||[]);
+    const res = await fetch(url.toString());
+    const j = res.ok ? await res.json().catch(()=>({})) : {};
+    if (!res.ok) console.error("/api/orders error", res.status);
+    setOrders((j as any).orders||[]);
   }
   useEffect(() => { load(); // initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,12 +59,16 @@ export default function OrdersPage() {
     if (res.ok) {
       setOrders((prev)=>prev.map(o=>o.id===id?{...o,status:newStatus}:o));
       if (selected?.id === id) setSelected({ ...selected, status: newStatus });
+    } else {
+      console.error("orders PATCH error", res.status);
     }
   }
 
   async function openDetail(id: string) {
-    const j = await fetch(`/api/orders?id=${id}`).then(r=>r.json());
-    setSelected(j.order as OrderDetail);
+    const res = await fetch(`/api/orders?id=${id}`);
+    const j = res.ok ? await res.json().catch(()=>({})) : {};
+    if (!res.ok) return console.error("/api/orders?id= error", res.status);
+    setSelected((j as any).order as OrderDetail);
   }
 
   function exportCSV() {

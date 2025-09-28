@@ -132,27 +132,32 @@ function slugify(input: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const me = await requireAuth(req);
-  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  await ensureSchema();
-  const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const category = searchParams.get("category");
-  const q = searchParams.get("query");
-  const where: string[] = [];
-  const params: Array<string | number> = [];
-  if (status) { params.push(status); where.push(`status = $${params.length}`); }
-  if (category) { params.push(category); where.push(`category = $${params.length}`); }
-  if (q) {
-    const like = `%${q}%`;
-    params.push(like, like, like);
-    where.push(`(sku ILIKE $${params.length-2} OR COALESCE(name_en,name) ILIKE $${params.length-1} OR COALESCE(name_es,name) ILIKE $${params.length})`);
+  try {
+    const me = await requireAuth(req);
+    if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    await ensureSchema();
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const category = searchParams.get("category");
+    const q = searchParams.get("query");
+    const where: string[] = [];
+    const params: Array<string | number> = [];
+    if (status) { params.push(status); where.push(`status = $${params.length}`); }
+    if (category) { params.push(category); where.push(`category = $${params.length}`); }
+    if (q) {
+      const like = `%${q}%`;
+      params.push(like, like, like);
+      where.push(`(sku ILIKE $${params.length-2} OR COALESCE(name_en,name) ILIKE $${params.length-1} OR COALESCE(name_es,name) ILIKE $${params.length})`);
+    }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const query = `SELECT * FROM products ${whereSql} ORDER BY updated_at DESC LIMIT 500`;
+    const res = await sql.query<DBProductRow>(query, params);
+    const products = res.rows.map(mapRowToVM);
+    return Response.json({ products });
+  } catch (err) {
+    console.error("products.GET error", err);
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  const query = `SELECT * FROM products ${whereSql} ORDER BY updated_at DESC LIMIT 500`;
-  const res = await sql.query<DBProductRow>(query, params);
-  const products = res.rows.map(mapRowToVM);
-  return Response.json({ products });
 }
 
 export async function POST(req: NextRequest) {

@@ -13,10 +13,12 @@ export default function InventoryPage() {
   const [me, setMe] = useState<Me | null>(null);
 
   async function load() {
-    const meRes = await fetch("/api/employee/me").then(r=>r.json());
+    const meRes = await fetch("/api/employee/me").then(r=>r.json()).catch(()=>({ me: null }));
     setMe(meRes.me as Me);
-    const j = await fetch("/api/products").then(r=>r.json());
-    setRows(j.products || []);
+    const res = await fetch("/api/products");
+    const j = res.ok ? await res.json().catch(()=>({})) : {};
+    if (!res.ok) console.error("/api/products error", res.status);
+    setRows((j as any).products || []);
   }
   useEffect(()=>{ load(); },[]);
 
@@ -50,7 +52,7 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3">
           <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
           {canManage && (
-            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-white font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
+            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="btn-gold text-sm">Add Product</button>
           )}
         </div>
       </div>

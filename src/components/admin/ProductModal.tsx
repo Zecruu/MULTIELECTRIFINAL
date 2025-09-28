@@ -109,7 +109,7 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
           <div className="text-xs text-neutral-400">Status: <span className="uppercase">{v.status || "draft"}</span></div>
           <div className="flex gap-2">
             <button type="button" onClick={()=>save("draft")} disabled={saving} className="rounded-md px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 disabled:opacity-60">Save Draft</button>
-            <button type="button" onClick={()=>save("active")} disabled={saving} className="rounded-md px-3 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60">{saving?"Saving...":"Publish"}</button>
+            <button type="button" onClick={()=>save("active")} disabled={saving} className="btn-gold text-white text-sm disabled:opacity-60">{saving?"Saving...":"Publish"}</button>
           </div>
         </div>
 

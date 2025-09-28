@@ -142,7 +142,7 @@ export default function ProductForm() {
       <div className="mt-6 flex items-center gap-3">
         <button
           disabled={uploading}
-          className="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60"
+          className="btn-gold text-sm disabled:opacity-60"
         >
           {uploading ? "Saving..." : "Save product"}
         </button>
