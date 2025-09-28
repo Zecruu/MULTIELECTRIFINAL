@@ -61,10 +61,10 @@ export default function Navbar() {
           {/* Right: Nav + Lang + Mobile toggle */}
           <div className="flex items-center gap-3">
             <nav className="hidden md:flex items-center">
-              <Link href="#home" className={linkCls}>{dict.nav.home}</Link>
-              <Link href="#services" className={linkCls}>{dict.nav.services}</Link>
-              <Link href="#about" className={linkCls}>{dict.nav.about}</Link>
-              <Link href="#contact" className={linkCls}>{dict.nav.contact}</Link>
+              <Link href="/#home" className={linkCls}>{dict.nav.home}</Link>
+              <Link href="/#services" className={linkCls}>{dict.nav.services}</Link>
+              <Link href="/#about" className={linkCls}>{dict.nav.about}</Link>
+              <Link href="/#contact" className={linkCls}>{dict.nav.contact}</Link>
               <Link href="/shop" className={linkCls}>Shop</Link>
             </nav>
 
@@ -126,10 +126,10 @@ export default function Navbar() {
         {open && (
           <div className="md:hidden border-t border-neutral-800 py-2">
             <nav className="flex flex-col">
-              <Link href="#home" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.home}</Link>
-              <Link href="#services" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.services}</Link>
-              <Link href="#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
-              <Link href="#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
+              <Link href="/#home" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.home}</Link>
+              <Link href="/#services" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.services}</Link>
+              <Link href="/#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
+              <Link href="/#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
               <Link href="/shop" className={linkCls} onClick={() => setOpen(false)}>Shop</Link>
               <Link href="/cuenta" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
             </nav>

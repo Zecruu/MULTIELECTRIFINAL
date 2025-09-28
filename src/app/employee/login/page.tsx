@@ -46,7 +46,7 @@ export default function LoginPage() {
               </div>
             </div>
             {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
-            <button className="mt-5 w-full rounded-md bg-[--gold] text-black font-semibold py-2 hover:brightness-95">Sign in</button>
+            <button className="mt-5 w-full rounded-md bg-[--gold] text-white font-semibold py-2 hover:brightness-95">Sign in</button>
             <p className="mt-3 text-xs text-gray-500">By signing in you agree to Multi Electric’s acceptable use and security policies.</p>
           </form>
         </div>

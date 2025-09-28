@@ -50,7 +50,7 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3">
           <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
           {canManage && (
-            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-black font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
+            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-white font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
           )}
         </div>
       </div>
