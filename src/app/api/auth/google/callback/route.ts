@@ -50,22 +50,30 @@ export async function GET(req: NextRequest) {
   if (!ui.email) return Response.json({ error: "No email returned" }, { status: 400 });
 
   // Upsert customer in Mongo
-  const col = await getCollection<CustomerDoc>("customers");
-  const now = new Date().toISOString();
-  const existing = await col.findOne({ email: ui.email });
-  if (!existing) {
-    await col.insertOne({
-      email: ui.email,
-      passwordHash: "oauth-google",
-      name: ui.name || ui.email.split("@")[0],
-      emailVerified: true,
-      language: "es",
-      sessions: [],
-      createdAt: now,
-      updatedAt: now,
-    } as CustomerDoc);
-  } else {
-    await col.updateOne({ email: ui.email }, { $set: { name: existing.name || ui.name || existing.email.split("@")[0], updatedAt: now } });
+  try {
+    const col = await getCollection<CustomerDoc>("customers");
+    const now = new Date().toISOString();
+    const existing = await col.findOne({ email: ui.email });
+    if (!existing) {
+      await col.insertOne({
+        email: ui.email,
+        passwordHash: "oauth-google",
+        name: ui.name || ui.email.split("@")[0],
+        emailVerified: true,
+        language: "es",
+        sessions: [],
+        createdAt: now,
+        updatedAt: now,
+      } as CustomerDoc);
+    } else {
+      await col.updateOne(
+        { email: ui.email },
+        { $set: { name: existing.name || ui.name || existing.email.split("@")[0], updatedAt: now } }
+      );
+    }
+  } catch (err) {
+    console.error("[OAuth] Mongo upsert failed:", err);
+    return Response.json({ error: "Database unavailable" }, { status: 500 });
   }
 
   // Issue our JWT cookies

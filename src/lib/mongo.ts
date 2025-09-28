@@ -5,12 +5,13 @@ let cachedDb: Db | null = null;
 
 export async function getDb(): Promise<Db> {
   if (cachedDb) return cachedDb;
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!uri) throw new Error("Missing MONGODB_URI env var");
   if (!client) client = new MongoClient(uri);
   // In serverless, connect() is idempotent and uses pooled connections under the hood
   await client.connect();
-  cachedDb = client.db();
+  const dbName = process.env.MONGODB_DB || process.env.MONGO_DB || undefined;
+  cachedDb = dbName ? client.db(dbName) : client.db();
   return cachedDb;
 }
 
