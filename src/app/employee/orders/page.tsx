@@ -2,6 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
 
+function Toast({ msg, type }: { msg: string; type: "success"|"error" }) {
+  const cls = type === "success" ? "bg-emerald-600/80" : "bg-red-600/80";
+  return <div className={`fixed top-4 right-4 z-[60] px-3 py-2 rounded-md text-sm ${cls}`}>{msg}</div>;
+}
+
+
 type OrderRow = {
   id: string;
   order_number: string;
@@ -9,7 +15,7 @@ type OrderRow = {
   customer_email: string;
   total_cents: number;
   currency: string;
-  status: "Pending" | "Processing" | "Ready for Pickup" | "Fulfilled" | "Canceled";
+  status: "Pending" | "Processing" | "Ready for Pickup" | "Fulfilled" | "Canceled" | "Refunded";
   created_at: string;
 };
 
@@ -26,6 +32,7 @@ type OrderDetail = {
   items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>;
 };
 
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [q, setQ] = useState("");
@@ -38,13 +45,25 @@ export default function OrdersPage() {
     if (q) url.searchParams.set("q", q);
     if (status) url.searchParams.set("status", status);
     const res = await fetch(url.toString());
-    const j = res.ok ? await res.json().catch(()=>({})) : {};
-    if (!res.ok) console.error("/api/orders error", res.status);
-    setOrders((j as any).orders||[]);
+
+
+
+
+    type OrdersResp = { orders: OrderRow[] };
+    if (!res.ok) { console.error("/api/orders error", res.status); setOrders([]); return; }
+    const j: OrdersResp = await res.json();
+    setOrders(j.orders || []);
   }
   useEffect(() => { load(); // initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [toast, setToast] = useState<{ msg: string; type: "success"|"error" } | null>(null);
+  function showToast(msg: string, type: "success"|"error" = "success") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2500);
+  }
+
   useEffect(() => {
     const es = new EventSource("/api/orders/stream");
     es.onmessage = () => load();
@@ -65,10 +84,12 @@ export default function OrdersPage() {
   }
 
   async function openDetail(id: string) {
+
+
     const res = await fetch(`/api/orders?id=${id}`);
-    const j = res.ok ? await res.json().catch(()=>({})) : {};
     if (!res.ok) return console.error("/api/orders?id= error", res.status);
-    setSelected((j as any).order as OrderDetail);
+    const j: { order: OrderDetail } = await res.json();
+    setSelected(j.order);
   }
 
   function exportCSV() {
@@ -81,8 +102,73 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function refundOrder(id: string) {
+    const res = await fetch(`/api/orders/${id}/refund`, { method: "POST" });
+    if (!res.ok) return showToast("Refund failed", "error");
+    showToast("Refund issued");
+    setOrders(prev => prev.map(o=>o.id===id?{...o, status: "Refunded"}:o));
+    if (selected?.id === id) setSelected({ ...selected, status: "Refunded" });
+  }
+
+
+  async function exportXLSX() {
+    const XLSX: typeof import("xlsx") = await import("xlsx");
+    const data = orders.map(o => ({
+      Number: o.order_number,
+      Customer: o.customer_name || "",
+      Email: o.customer_email,
+      Total: (o.total_cents/100).toFixed(2),
+      Status: o.status,
+      Date: new Date(o.created_at).toISOString().slice(0,10),
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orders");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `orders-${Date.now()}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPDF() {
+    type PdfDocProxy = { download: (filename?: string) => void };
+    type PdfMake = { vfs?: Record<string, string>; createPdf: (docDefinition: object) => PdfDocProxy };
+    type PdfFonts = { pdfMake: { vfs: Record<string, string> } };
+    const pdfMakeMod = await import("pdfmake/build/pdfmake");
+    const pdfFontsMod = await import("pdfmake/build/vfs_fonts");
+    const pdfMake = (pdfMakeMod as unknown as { default: PdfMake }).default;
+    const pdfFonts = pdfFontsMod as unknown as PdfFonts;
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
+    const header = ["Order #","Customer","Email","Total","Status","Date"];
+    const body = [
+      header.map(h => ({ text: h, bold: true, fillColor: "#111827", color: "#E5E7EB" })),
+      ...orders.map(o => [
+        o.order_number,
+        o.customer_name || "",
+        o.customer_email,
+        (o.total_cents/100).toFixed(2),
+        o.status,
+        new Date(o.created_at).toLocaleDateString(),
+      ])
+    ];
+
+    const docDefinition = {
+      content: [
+        { text: "Orders", style: "header" },
+        { table: { headerRows: 1, widths: ["auto","*","*","auto","auto","auto"], body }, layout: "lightHorizontalLines" }
+      ],
+      styles: { header: { fontSize: 16, bold: true, color: "#D4AF37", margin: [0,0,0,10] } },
+      defaultStyle: { fontSize: 10 }
+    } as const;
+
+    pdfMake.createPdf(docDefinition).download(`orders-${Date.now()}.pdf`);
+  }
+
   return (
     <div>
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Orders</h1>
         <div className="flex items-center gap-2">
@@ -94,9 +180,14 @@ export default function OrdersPage() {
             <option>Ready for Pickup</option>
             <option>Fulfilled</option>
             <option>Canceled</option>
+            <option>Refunded</option>
           </select>
           <button onClick={load} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Search</button>
-          <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
+          <div className="ml-2 flex items-center gap-2">
+            <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
+            <button onClick={exportXLSX} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export XLSX</button>
+            <button onClick={exportPDF} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export PDF</button>
+          </div>
         </div>
       </div>
       <div className="overflow-x-auto rounded-md border border-neutral-900">
@@ -126,6 +217,9 @@ export default function OrdersPage() {
                   <button onClick={()=>updateStatus(o.id, "Ready for Pickup")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Mark Ready</button>
                   <button onClick={()=>updateStatus(o.id, "Fulfilled")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Fulfill</button>
                   <button onClick={()=>updateStatus(o.id, "Canceled")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Cancel</button>
+                  {o.status!=="Refunded" && o.status!=="Canceled" && (
+                    <button onClick={()=>refundOrder(o.id)} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Refund</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -167,6 +261,13 @@ export default function OrdersPage() {
                 <button onClick={()=>updateStatus(selected.id, "Processing")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Processing</button>
                 <button onClick={()=>updateStatus(selected.id, "Ready for Pickup")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Ready</button>
                 <button onClick={()=>updateStatus(selected.id, "Fulfilled")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Fulfill</button>
+                <button onClick={()=>updateStatus(selected.id, "Canceled")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Cancel</button>
+                {selected.status!=="Refunded" && selected.status!=="Canceled" && (
+                  <>
+                    <button onClick={()=>updateStatus(selected.id, "Refunded")} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Mark Refunded</button>
+                    <button onClick={()=>refundOrder(selected.id)} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Refund</button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { sql } from "@vercel/postgres";
 
-export type DbOrderStatus = "Pending" | "Processing" | "Ready for Pickup" | "Fulfilled" | "Canceled";
+export type DbOrderStatus = "Pending" | "Processing" | "Ready for Pickup" | "Fulfilled" | "Canceled" | "Refunded";
 
 export interface DbProduct { id: string; sku: string; name: string; description?: string; price_cents: number; currency: string; image_url?: string | null; stock: number; }
 export interface DbCustomer { id: string; email: string; name?: string | null; phone?: string | null; address_json?: Record<string, unknown> | null; }

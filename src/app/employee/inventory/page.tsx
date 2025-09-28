@@ -16,10 +16,12 @@ export default function InventoryPage() {
     const meRes = await fetch("/api/employee/me").then(r=>r.json()).catch(()=>({ me: null }));
     setMe(meRes.me as Me);
     const res = await fetch("/api/products");
-    const j = res.ok ? await res.json().catch(()=>({})) : {};
-    if (!res.ok) console.error("/api/products error", res.status);
-    setRows((j as any).products || []);
+    if (!res.ok) { console.error("/api/products error", res.status); setRows([]); return; }
+    const j: { products: ProductRow[] } = await res.json();
+    setRows(j.products || []);
   }
+
+
   useEffect(()=>{ load(); },[]);
 
   function exportCSV() {
@@ -31,6 +33,58 @@ export default function InventoryPage() {
     const a = document.createElement("a"); a.href = url; a.download = `inventory-${Date.now()}.csv`; a.click();
     URL.revokeObjectURL(url);
   }
+
+  async function exportXLSX() {
+    const XLSX: typeof import("xlsx") = await import("xlsx");
+    const data = rows.map(p => ({
+      ID: p.id,
+      SKU: p.sku,
+      Name_EN: p.name_en,
+      Name_ES: p.name_es,
+      Category: p.category,
+      Price: p.price,
+      Stock: p.stock,
+      Status: p.status,
+      Updated: p.updatedAt,
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `inventory-${Date.now()}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPDF() {
+    type PdfDocProxy = { download: (filename?: string) => void };
+    type PdfMake = { vfs?: Record<string, string>; createPdf: (docDefinition: object) => PdfDocProxy };
+    type PdfFonts = { pdfMake: { vfs: Record<string, string> } };
+    const pdfMakeMod = await import("pdfmake/build/pdfmake");
+    const pdfFontsMod = await import("pdfmake/build/vfs_fonts");
+    const pdfMake = (pdfMakeMod as unknown as { default: PdfMake }).default;
+    const pdfFonts = pdfFontsMod as unknown as PdfFonts;
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
+    const header = ["ID","SKU","Name (EN)","Name (ES)","Category","Price","Stock","Status","Updated"];
+    const body = [
+      header.map(h => ({ text: h, bold: true, fillColor: "#111827", color: "#E5E7EB" })),
+      ...rows.map(p => [p.id, p.sku, p.name_en, p.name_es, p.category, p.price.toFixed(2), p.stock, p.status, p.updatedAt])
+    ];
+
+    const docDefinition = {
+      content: [
+        { text: "Inventory", style: "header" },
+        { table: { headerRows: 1, widths: ["auto","auto","*","*","*","auto","auto","auto","auto"], body }, layout: "lightHorizontalLines" }
+      ],
+      styles: { header: { fontSize: 16, bold: true, color: "#D4AF37", margin: [0,0,0,10] } },
+      defaultStyle: { fontSize: 9 }
+    } as const;
+
+    pdfMake.createPdf(docDefinition).download(`inventory-${Date.now()}.pdf`);
+  }
+
 
   async function onDelete(id: string) {
     if (!confirm("Delete this product?")) return;
@@ -50,10 +104,14 @@ export default function InventoryPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Inventory</h1>
         <div className="flex items-center gap-3">
-          <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
-          {canManage && (
-            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="btn-gold text-sm">Add Product</button>
-          )}
+          <div className="flex items-center gap-2">
+            <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
+            <button onClick={exportXLSX} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export XLSX</button>
+            <button onClick={exportPDF} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export PDF</button>
+            {canManage && (
+              <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="btn-gold text-sm">Add Product</button>
+            )}
+          </div>
         </div>
       </div>
       <div className="overflow-x-auto rounded-md border border-neutral-900">
