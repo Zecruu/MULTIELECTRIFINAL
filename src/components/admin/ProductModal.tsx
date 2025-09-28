@@ -11,19 +11,22 @@ export type ProductInput = {
   description_es?: string;
   category: string;
   price: string; // string for input control
+  compare_at_price?: string;
   stock: string; // string for input control
-  status?: string;
+  low_stock_threshold?: string;
+  status?: "draft" | "active" | "hidden";
   featured?: boolean;
+  hot?: boolean;
+  visible?: boolean;
   images?: string[];
 };
 
 export default function ProductModal({ open, onClose, initial, onSaved }: { open: boolean; onClose: () => void; initial?: Partial<ProductInput>; onSaved: () => void; }) {
-  const [v, setV] = useState<ProductInput>({ name_en:"", name_es:"", description_en:"", description_es:"", category:"", price:"", stock:"", featured:false, images:[] });
+  const [v, setV] = useState<ProductInput>({ name_en:"", name_es:"", description_en:"", description_es:"", category:"", price:"0", stock:"0", featured:false, visible:true, status:"draft", images:[] });
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-
 
   useEffect(() => {
     if (open) {
@@ -37,8 +40,8 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
     }
   }, [open, initial]);
 
-  function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+  function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     type FieldName = keyof ProductInput;
     const name = target.name as FieldName;
     const val = target instanceof HTMLInputElement && target.type === "checkbox" ? (target.checked as unknown as ProductInput[FieldName]) : (target.value as unknown as ProductInput[FieldName]);
@@ -46,7 +49,7 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
   }
 
   async function upload(file: File) {
-    const presign = await fetch("/api/uploads/presign", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ filename: file.name, contentType: file.type }) });
+    const presign = await fetch("/api/uploads/sign", { method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ filename: file.name, contentType: file.type }) });
     if (!presign.ok) throw new Error("presign failed");
     const { url, fields, publicUrl } = await presign.json();
     const fd = new FormData();
@@ -57,21 +60,39 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
     return publicUrl as string;
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function save(desiredStatus: "draft" | "active") {
     setSaving(true); setErr(null);
     try {
+      // Client-side validation for publish
+      if (desiredStatus === "active") {
+        const reasons: string[] = [];
+        if (!v.name_en?.trim()) reasons.push("Name (EN)");
+        if (!v.name_es?.trim()) reasons.push("Nombre (ES)");
+        const totalImages = (v.images?.length || 0) + (files.length || 0);
+        if (totalImages < 1) reasons.push("At least 1 image");
+        if (reasons.length) throw new Error("Missing: " + reasons.join(", "));
+      }
+
       const uploaded: string[] = [];
       for (const f of files) uploaded.push(await upload(f));
+
       const payload = {
         ...v,
+        status: desiredStatus,
         price: Number(v.price || 0),
+        compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : undefined,
         stock: Number(v.stock || 0),
+        low_stock_threshold: v.low_stock_threshold ? Number(v.low_stock_threshold) : undefined,
         images: [...(v.images || []), ...uploaded],
-      };
+      } as any;
+
       const method = v.id ? "PATCH" : "POST";
-      const res = await fetch("/api/products" + (v.id ? `?id=${v.id}` : ""), { method, headers: {"content-type":"application/json"}, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error("save failed");
+      const url = "/api/products" + (v.id ? `?id=${v.id}` : "");
+      const res = await fetch(url, { method, headers: {"content-type":"application/json"}, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const j = await res.json().catch(()=>({}));
+        throw new Error(j?.message || j?.error || "save failed");
+      }
       onSaved();
       onClose();
     } catch (e: unknown) {
@@ -83,7 +104,15 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
 
   return (
     <Modal open={open} onClose={onClose} title={v.id ? "Edit Product" : "Add Product"}>
-      <form onSubmit={onSubmit} className="space-y-3">
+      <form onSubmit={(e)=>{ e.preventDefault(); save("draft"); }} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-neutral-400">Status: <span className="uppercase">{v.status || "draft"}</span></div>
+          <div className="flex gap-2">
+            <button type="button" onClick={()=>save("draft")} disabled={saving} className="rounded-md px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700 disabled:opacity-60">Save Draft</button>
+            <button type="button" onClick={()=>save("active")} disabled={saving} className="rounded-md px-3 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60">{saving?"Saving...":"Publish"}</button>
+          </div>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm mb-1">Name (EN)</label>
@@ -113,23 +142,29 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
             <input name="price" value={v.price} onChange={onChange} inputMode="decimal" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
           </div>
           <div>
+            <label className="block text-sm mb-1">Compare-at price</label>
+            <input name="compare_at_price" value={v.compare_at_price||""} onChange={onChange} inputMode="decimal" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          </div>
+          <div>
             <label className="block text-sm mb-1">Stock</label>
             <input name="stock" value={v.stock} onChange={onChange} inputMode="numeric" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
           </div>
-          <div className="flex items-center gap-2 mt-6">
-            <input id="featured" name="featured" type="checkbox" checked={!!v.featured} onChange={onChange} className="h-4 w-4" />
-            <label htmlFor="featured" className="text-sm">Featured</label>
+          <div>
+            <label className="block text-sm mb-1">Low-stock threshold</label>
+            <input name="low_stock_threshold" value={v.low_stock_threshold||""} onChange={onChange} inputMode="numeric" className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+          </div>
+          <div className="flex items-center gap-3 mt-6">
+            <label className="inline-flex items-center gap-2 text-sm"><input id="featured" name="featured" type="checkbox" checked={!!v.featured} onChange={onChange} className="h-4 w-4" /> Featured</label>
+            <label className="inline-flex items-center gap-2 text-sm"><input id="hot" name="hot" type="checkbox" checked={!!v.hot} onChange={onChange} className="h-4 w-4" /> Hot</label>
+            <label className="inline-flex items-center gap-2 text-sm"><input id="visible" name="visible" type="checkbox" checked={v.visible!==false} onChange={onChange} className="h-4 w-4" /> Visible</label>
           </div>
         </div>
+
         <div>
           <label className="block text-sm mb-2">Images</label>
           <input type="file" accept="image/*" multiple onChange={(e)=>setFiles(Array.from(e.target.files||[]))} />
         </div>
         {err && <p className="text-sm text-red-400">{err}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-md px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700">Cancel</button>
-          <button disabled={saving} className="rounded-md px-3 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60">{saving?"Saving...":"Save"}</button>
-        </div>
       </form>
     </Modal>
   );

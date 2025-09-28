@@ -11,10 +11,33 @@ export interface DbOrderItem { id: string; order_id: string; product_id: string;
 export async function ensureSchema() {
   // Safe idempotent DDL for local dev; in production use migrations
   await sql`CREATE TABLE IF NOT EXISTS products (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sku text UNIQUE NOT NULL, name text NOT NULL, description text, price_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', image_url text, stock integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
+  // Evolve products table for admin inventory features
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_en text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS name_es text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS description_en text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS description_es text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS category text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS tags text[]`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS status text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS compare_at_cents integer`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS low_stock_threshold integer`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS taxable boolean`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS images jsonb`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS featured boolean`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS hot boolean`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS visible boolean`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS slug text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_title_en text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_desc_en text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_title_es text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_desc_es text`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS products_slug_key ON products(slug)`;
+
   await sql`CREATE TABLE IF NOT EXISTS customers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text UNIQUE NOT NULL, name text, phone text, address_json jsonb, created_at timestamptz NOT NULL DEFAULT now());`;
   await sql`CREATE TABLE IF NOT EXISTS orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_number text UNIQUE NOT NULL, customer_id uuid REFERENCES customers(id), status text NOT NULL, subtotal_cents integer NOT NULL, tax_cents integer NOT NULL, total_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', payment_intent_id text, stripe_session_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
   await sql`CREATE TABLE IF NOT EXISTS order_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid REFERENCES orders(id) ON DELETE CASCADE, product_id uuid REFERENCES products(id), sku text NOT NULL, name text NOT NULL, qty integer NOT NULL, unit_price_cents integer NOT NULL, line_total_cents integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS order_sequences (year integer PRIMARY KEY, seq integer NOT NULL);`;
+  await sql`CREATE TABLE IF NOT EXISTS audit_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_id text, action text NOT NULL, product_id uuid, before jsonb, after jsonb, ip text, user_agent text, ts timestamptz NOT NULL DEFAULT now());`;
 }
 
 export async function upsertCustomer(email: string, name?: string | null, phone?: string | null, address_json?: Record<string, unknown> | null) {
@@ -113,5 +136,11 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     customer: { email: row.customer_email, name: row.customer_name },
     items: iRes.rows,
   };
+}
+
+export async function logAudit(params: { actorId?: string | null; action: string; productId?: string | null; before?: unknown; after?: unknown; ip?: string | null; userAgent?: string | null; }) {
+  const { actorId, action, productId, before, after, ip, userAgent } = params;
+  await sql`INSERT INTO audit_logs (actor_id, action, product_id, before, after, ip, user_agent)
+    VALUES (${actorId ?? null}, ${action}, ${productId ?? null}, ${before ? JSON.stringify(before) : null}, ${after ? JSON.stringify(after) : null}, ${ip ?? null}, ${userAgent ?? null});`;
 }
 

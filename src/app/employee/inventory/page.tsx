@@ -9,6 +9,7 @@ export default function InventoryPage() {
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [initialForModal, setInitialForModal] = useState<ProductInput | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
 
   async function load() {
@@ -36,11 +37,11 @@ export default function InventoryPage() {
   }
 
   const canManage = !!me?.permissions?.canManageInventory;
-  const initial: ProductInput | undefined = editId ? (() => {
+  const initial: ProductInput | undefined = initialForModal ?? (editId ? (() => {
     const r = rows.find(x=>x.id===editId);
     if (!r) return undefined;
     return { id: r.id, name_en: r.name_en, name_es: r.name_es, category: r.category, price: String(r.price), stock: String(r.stock) } as ProductInput;
-  })() : undefined;
+  })() : undefined);
 
   return (
     <div>
@@ -49,7 +50,7 @@ export default function InventoryPage() {
         <div className="flex items-center gap-3">
           <button onClick={exportCSV} className="rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm px-3 py-2">Export CSV</button>
           {canManage && (
-            <button onClick={()=>{ setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-black font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
+            <button onClick={()=>{ setInitialForModal(undefined); setEditId(null); setOpen(true); }} className="rounded-md bg-[--gold] text-black font-semibold py-2 px-3 hover:brightness-95">Add Product</button>
           )}
         </div>
       </div>
@@ -85,7 +86,8 @@ export default function InventoryPage() {
                 <td className="px-3 py-2">{p.updatedAt}</td>
                 {canManage && (
                   <td className="px-3 py-2 space-x-2">
-                    <button onClick={()=>{ setEditId(p.id); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
+                    <button onClick={()=>{ setInitialForModal(undefined); setEditId(p.id); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
+                    <button onClick={()=>{ const r = rows.find(x=>x.id===p.id); if (r) { setInitialForModal({ name_en: r.name_en, name_es: r.name_es, category: r.category, price: String(r.price), stock: String(r.stock) }); } setEditId(null); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Duplicate</button>
                     <button onClick={()=>onDelete(p.id)} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Delete</button>
                   </td>
                 )}
