@@ -107,7 +107,7 @@ async function requireAuth(req: NextRequest): Promise<Me | null> {
 function mapRowToVM(row: DBProductRow): ProductVM {
   return {
     id: row.id,
-    sku: row.sku,
+    sku: row.sku ?? "",
     name_en: row.name_en ?? row.name ?? "",
     name_es: row.name_es ?? row.name ?? "",
     description_en: row.description_en ?? row.description ?? undefined,
