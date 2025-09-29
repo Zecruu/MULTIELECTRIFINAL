@@ -29,33 +29,46 @@ export async function GET(req: NextRequest) {
 
   try {
     await ensureSchema();
-    const like = `%${q}%`;
-    const where = q ? "WHERE (c.email ILIKE $1 OR c.name ILIKE $1 OR c.phone ILIKE $1)" : "";
     const limit = pageSize;
     const offset = (page - 1) * pageSize;
 
-    const countQuery = `SELECT COUNT(*)::int AS count FROM customers c ${where}`;
-    const listQuery = `
-      SELECT c.id, c.name, c.email, c.phone,
-             COALESCE(COUNT(o.id),0)::int AS total_orders,
-             MAX(o.created_at) AS last_order
-      FROM customers c
-      LEFT JOIN orders o ON o.customer_id = c.id
-      ${where}
-      GROUP BY c.id
-      ORDER BY last_order DESC NULLS LAST, c.name ASC
-      LIMIT $2 OFFSET $3`;
+    let countQuery: string;
+    let listQuery: string;
+    let countParams: Array<string | number>;
+    let listParams: Array<string | number>;
 
-    const params: Array<string | number> = q ? [like, limit, offset] : [limit, offset];
+    if (q) {
+      const like = `%${q}%`;
+      countQuery = `SELECT COUNT(*)::int AS count FROM customers c WHERE (c.email ILIKE $1 OR c.name ILIKE $1 OR c.phone ILIKE $1)`;
+      listQuery = `
+        SELECT c.id, c.name, c.email, c.phone,
+               COALESCE(COUNT(o.id),0)::int AS total_orders,
+               MAX(o.created_at) AS last_order
+        FROM customers c
+        LEFT JOIN orders o ON o.customer_id = c.id
+        WHERE (c.email ILIKE $1 OR c.name ILIKE $1 OR c.phone ILIKE $1)
+        GROUP BY c.id
+        ORDER BY last_order DESC NULLS LAST, c.name ASC
+        LIMIT $2 OFFSET $3`;
+      countParams = [like];
+      listParams = [like, limit, offset];
+    } else {
+      countQuery = `SELECT COUNT(*)::int AS count FROM customers c`;
+      listQuery = `
+        SELECT c.id, c.name, c.email, c.phone,
+               COALESCE(COUNT(o.id),0)::int AS total_orders,
+               MAX(o.created_at) AS last_order
+        FROM customers c
+        LEFT JOIN orders o ON o.customer_id = c.id
+        GROUP BY c.id
+        ORDER BY last_order DESC NULLS LAST, c.name ASC
+        LIMIT $1 OFFSET $2`;
+      countParams = [];
+      listParams = [limit, offset];
+    }
 
-    const countRes = q ? await sql.query<{ count: number }>(countQuery, [like]) : await sql.query<{ count: number }>(countQuery);
-
-    const listRes = q
-      ? await sql.query<{ id: string; name: string | null; email: string; phone: string | null; total_orders: number; last_order: string | null }>(listQuery, params)
-      : await sql.query<{ id: string; name: string | null; email: string; phone: string | null; total_orders: number; last_order: string | null }>(
-          listQuery.replace("WHERE (c.email ILIKE $1 OR c.name ILIKE $1 OR c.phone ILIKE $1)", ""),
-          [limit, offset]
-        );
+    const countRes = await sql.query<{ count: number }>(countQuery, countParams);
+    const listRes = await sql.query<{ id: string; name: string | null; email: string; phone: string | null; total_orders: number; last_order: string | null }>(listQuery, listParams);
 
     const clients = listRes.rows.map(r => ({
       id: r.id,
