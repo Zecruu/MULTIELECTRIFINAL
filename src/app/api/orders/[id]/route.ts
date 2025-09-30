@@ -23,8 +23,10 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const products: Map<string, { image_url: string | null; images: unknown }> = new Map();
 
   if (productIds.length > 0) {
-    const pRes = await sql<{ id: string; image_url: string | null; images: unknown }>`
-      SELECT id, image_url, images FROM products WHERE id = ANY(${productIds})`;
+    const pRes = await sql.query<{ id: string; image_url: string | null; images: unknown }>(
+      `SELECT id, image_url, images FROM products WHERE id = ANY($1)`,
+      [productIds]
+    );
     pRes.rows.forEach(p => products.set(p.id, p));
   }
 
