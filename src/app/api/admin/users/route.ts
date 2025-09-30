@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { sql } from "@vercel/postgres";
-import { connectMongo } from "@/lib/mongo";
+import { getDb } from "@/lib/mongo";
 
 export const runtime = "nodejs";
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     );
 
     // Get customers from MongoDB
-    const { db } = await connectMongo();
+    const db = await getDb();
     const customersCollection = db.collection("customers");
     const customers = await customersCollection
       .find({})
