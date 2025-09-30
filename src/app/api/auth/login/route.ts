@@ -3,6 +3,7 @@ import { getCollection, type CustomerDoc } from "@/lib/mongo";
 import type { WithId } from "mongodb";
 import bcrypt from "bcryptjs";
 import { signAccess, signRefresh, setAuthCookies, newCsrf } from "@/lib/auth-customer";
+import { upsertCustomer } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,14 @@ export async function POST(req: NextRequest) {
     if (!ok) return Response.json({ error: "Invalid email or password" }, { status: 401 });
     const sessionId = crypto.randomUUID();
     await col.updateOne({ email }, { $set: { lastLoginAt: now, updatedAt: now }, $push: { sessions: { id: sessionId, device: "web", browser: ua, ip, lastSeen: now } } });
+  }
+
+  // Sync to Postgres customers table so they appear in Employee Clients page
+  try {
+    await upsertCustomer(email, user.name || null, user.phone || null, null);
+  } catch (err) {
+    console.error("[Login] Postgres customer sync failed:", err);
+    // Non-fatal: continue login flow
   }
 
   const payload = { sub: email, email, name: user.name || "", lang: (user.language === "en" ? "en" : "es") as "en" | "es", sid: user.sessions?.slice(-1)[0]?.id };

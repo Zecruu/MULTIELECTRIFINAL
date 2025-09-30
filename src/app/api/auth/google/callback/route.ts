@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCollection, type CustomerDoc } from "@/lib/mongo";
 import { signAccess, signRefresh } from "@/lib/auth-customer";
+import { upsertCustomer } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
   if (!ui.email) return Response.json({ error: "No email returned" }, { status: 400 });
 
   // Upsert customer in Mongo
+  let finalName = ui.name || ui.email.split("@")[0];
   try {
     const col = await getCollection<CustomerDoc>("customers");
     const now = new Date().toISOString();
@@ -58,7 +60,7 @@ export async function GET(req: NextRequest) {
       await col.insertOne({
         email: ui.email,
         passwordHash: "oauth-google",
-        name: ui.name || ui.email.split("@")[0],
+        name: finalName,
         emailVerified: true,
         language: "es",
         sessions: [],
@@ -66,14 +68,23 @@ export async function GET(req: NextRequest) {
         updatedAt: now,
       } as CustomerDoc);
     } else {
+      finalName = existing.name || ui.name || existing.email.split("@")[0];
       await col.updateOne(
         { email: ui.email },
-        { $set: { name: existing.name || ui.name || existing.email.split("@")[0], updatedAt: now } }
+        { $set: { name: finalName, updatedAt: now } }
       );
     }
   } catch (err) {
     console.error("[OAuth] Mongo upsert failed:", err);
     return Response.json({ error: "Database unavailable" }, { status: 500 });
+  }
+
+  // Also sync to Postgres customers table so they appear in Employee Clients page
+  try {
+    await upsertCustomer(ui.email, finalName, null, null);
+  } catch (err) {
+    console.error("[OAuth] Postgres customer sync failed:", err);
+    // Non-fatal: continue login flow
   }
 
   // Issue our JWT cookies
