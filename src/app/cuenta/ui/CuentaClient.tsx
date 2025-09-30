@@ -93,7 +93,7 @@ export default function CuentaClient() {
                       <div className="text-xs text-neutral-400">{o.date}</div>
                       <div className="mt-2 text-sm">{o.currency.toUpperCase()} {(o.total/100).toFixed(2)}</div>
                       <div className="mt-2"><span className="text-[10px] px-2 py-0.5 rounded bg-blue-600/30 border border-blue-600/50">{o.status}</span></div>
-                      <a href={`/api/orders/${o.id}`} className="block mt-3 text-xs underline">Ver detalle</a>
+                      <a href={`/cuenta/pedido/${o.id}`} className="block mt-3 text-xs underline hover:text-[#D4AF37]">Ver detalle</a>
                     </div>
                   ))}
                 </div>
