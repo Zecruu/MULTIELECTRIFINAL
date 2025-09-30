@@ -50,7 +50,7 @@ type DBProductRow = {
   images: Array<{ url: string; alt?: string | null; primary?: boolean }> | null;
   image_url?: string | null;
   slug: string | null;
-  updated_at: string | null;
+  updated_at: string | Date | null; // Can be string or Date depending on query method
 };
 
 
