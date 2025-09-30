@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
 
     // Fetch order data from PostgreSQL for ALL customers (both Mongo and Postgres)
     const allEmails = Array.from(mongoMap.keys());
-    let pgOrderData: Map<string, { totalOrders: number; lastOrder: string | null }> = new Map();
-    
+    const pgOrderData: Map<string, { totalOrders: number; lastOrder: string | null }> = new Map();
+
     if (allEmails.length > 0) {
       // Get order stats for all customers by email
       const orderQuery = `
