@@ -5,15 +5,42 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 
+type Order = {
+  id: string;
+  order_number: string;
+  created_at: string;
+  status: string;
+  total_cents: number;
+  currency: string;
+  shipping_address: string | { name: string; address: string; city: string; state: string; zipCode: string; phone: string };
+  items?: Array<{ product_id: string; product_name?: string; quantity: number; price_cents: number }>;
+};
+
 function OrderConfirmationContent() {
   const { lang } = useI18n();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id");
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    async function loadOrder() {
+      try {
+        const res = await fetch(`/api/orders?id=${orderId}`);
+        if (!res.ok) {
+          throw new Error("Failed to load order");
+        }
+        const data = await res.json();
+        setOrder(data.order);
+      } catch (err) {
+        console.error("Failed to load order:", err);
+        setError(err instanceof Error ? err.message : "Failed to load order");
+      } finally {
+        setLoading(false);
+      }
+    }
+
     if (!orderId) {
       setError("No order ID provided");
       setLoading(false);
@@ -22,22 +49,6 @@ function OrderConfirmationContent() {
 
     loadOrder();
   }, [orderId]);
-
-  async function loadOrder() {
-    try {
-      const res = await fetch(`/api/orders?id=${orderId}`);
-      if (!res.ok) {
-        throw new Error("Failed to load order");
-      }
-      const data = await res.json();
-      setOrder(data.order);
-    } catch (err) {
-      console.error("Failed to load order:", err);
-      setError(err instanceof Error ? err.message : "Failed to load order");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -161,7 +172,7 @@ function OrderConfirmationContent() {
               {lang === "en" ? "Items" : "Artículos"}
             </h2>
             <div className="space-y-3">
-              {order.items.map((item: any, idx: number) => (
+              {order.items.map((item, idx: number) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <span className="text-gray-300">
                     {item.quantity}x {item.product_name || `Product ${item.product_id}`}

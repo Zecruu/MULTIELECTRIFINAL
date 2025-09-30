@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { addToCart, getCart, getCartItemCount } from "@/lib/cart";
+import { addToCart } from "@/lib/cart";
 import ProductDetailModal from "@/components/ProductDetailModal";
 
 type Product = {
@@ -27,19 +27,12 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cartCount, setCartCount] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     loadProducts();
-    updateCartCount();
-    
-    // Listen for cart updates
-    const handleCartUpdate = () => updateCartCount();
-    window.addEventListener("cart-updated", handleCartUpdate);
-    return () => window.removeEventListener("cart-updated", handleCartUpdate);
   }, []);
 
   async function loadProducts() {
@@ -59,10 +52,7 @@ export default function ProductsPage() {
     }
   }
 
-  function updateCartCount() {
-    const cart = getCart();
-    setCartCount(getCartItemCount(cart));
-  }
+
 
   function handleAddToCart(product: Product) {
     const primaryImage = product.images.find(img => img.primary) || product.images[0];
