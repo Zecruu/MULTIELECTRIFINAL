@@ -361,16 +361,49 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    console.log("DELETE request received");
+
     const me = await requireAuth(req);
-    if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
+    console.log("Auth result:", me ? "authenticated" : "not authenticated");
+
+    if (!me) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!me.permissions?.canManageInventory) {
+      console.log("User lacks canManageInventory permission");
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const id = new URL(req.url).searchParams.get("id");
-    if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
+    console.log("Product ID to delete:", id);
 
+    if (!id) {
+      return Response.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    // Check if product exists
     const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
-    await sql`DELETE FROM products WHERE id=${id}`;
+    console.log("Product found:", beforeRes.rows.length > 0);
 
+    if (beforeRes.rows.length === 0) {
+      return Response.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    // Delete the product
+    await sql.query("DELETE FROM products WHERE id=$1", [id]);
+    console.log("Product deleted successfully");
+
+    // Try to log audit (non-critical)
     try {
-      await logAudit({ actorId: me.id, action: "product.delete", productId: id, before: beforeRes.rows[0] || null, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
+      await logAudit({
+        actorId: me.id,
+        action: "product.delete",
+        productId: id,
+        before: beforeRes.rows[0] || null,
+        ip: req.headers.get("x-forwarded-for"),
+        userAgent: req.headers.get("user-agent")
+      });
     } catch (auditErr) {
       console.error("Audit log failed (non-critical):", auditErr);
     }
@@ -378,7 +411,14 @@ export async function DELETE(req: NextRequest) {
     return Response.json({ ok: true });
   } catch (err) {
     console.error("DELETE product error:", err);
-    return Response.json({ error: "Server error", details: String(err) }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    console.error("Error stack:", errorStack);
+    return Response.json({
+      error: "Server error",
+      message: errorMessage,
+      stack: errorStack?.split('\n').slice(0, 3).join('\n') // First 3 lines of stack
+    }, { status: 500 });
   }
 }
 
