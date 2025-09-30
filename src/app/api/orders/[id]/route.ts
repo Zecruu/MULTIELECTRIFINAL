@@ -20,10 +20,10 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
 
   // Fetch product details including images
   const productIds = iRes.rows.map(i => i.product_id);
-  let products: Map<string, { image_url: string | null; images: any }> = new Map();
+  const products: Map<string, { image_url: string | null; images: unknown }> = new Map();
 
   if (productIds.length > 0) {
-    const pRes = await sql<{ id: string; image_url: string | null; images: any }>`
+    const pRes = await sql<{ id: string; image_url: string | null; images: unknown }>`
       SELECT id, image_url, images FROM products WHERE id = ANY(${productIds})`;
     pRes.rows.forEach(p => products.set(p.id, p));
   }

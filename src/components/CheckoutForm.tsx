@@ -18,7 +18,6 @@ export default function CheckoutForm({ cart }: Props) {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
     email: "",
@@ -47,8 +46,6 @@ export default function CheckoutForm({ cart }: Props) {
         }
       } catch (err) {
         console.error("Failed to load customer data:", err);
-      } finally {
-        setLoading(false);
       }
     }
 
