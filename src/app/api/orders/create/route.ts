@@ -25,9 +25,13 @@ type ShippingInfo = {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[Order Create] Starting order creation");
     await ensureSchema();
 
-    const { items, shippingInfo, paymentIntentId, totalCents, currency } = await req.json() as {
+    const body = await req.json();
+    console.log("[Order Create] Request body:", JSON.stringify(body, null, 2));
+
+    const { items, shippingInfo, paymentIntentId, totalCents, currency } = body as {
       items: CartItem[];
       shippingInfo: ShippingInfo;
       paymentIntentId: string;
@@ -36,10 +40,12 @@ export async function POST(req: NextRequest) {
     };
 
     if (!items || items.length === 0) {
+      console.log("[Order Create] Error: No items in order");
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
     if (!shippingInfo || !shippingInfo.email || !shippingInfo.name) {
+      console.log("[Order Create] Error: Missing shipping information");
       return NextResponse.json({ error: "Missing shipping information" }, { status: 400 });
     }
 
@@ -52,12 +58,14 @@ export async function POST(req: NextRequest) {
       phone: shippingInfo.phone,
     };
 
+    console.log("[Order Create] Upserting customer:", shippingInfo.email);
     const customerId = await upsertCustomer(
       shippingInfo.email,
       shippingInfo.name,
       shippingInfo.phone || null,
       addressJson
     );
+    console.log("[Order Create] Customer ID:", customerId);
 
     // Generate order number
     const orderNumber = `ME-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
@@ -120,6 +128,7 @@ export async function POST(req: NextRequest) {
 
     const order = orderRes.rows[0];
 
+    console.log("[Order Create] Order created successfully:", order.id);
     return NextResponse.json({
       success: true,
       order: {
@@ -131,7 +140,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Order creation error:", error);
+    console.error("[Order Create] ERROR:", error);
+    console.error("[Order Create] Error stack:", error instanceof Error ? error.stack : "No stack");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create order" },
       { status: 500 }
