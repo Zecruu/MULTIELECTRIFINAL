@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePathname } from "next/navigation";
+import { getCart, getCartItemCount } from "@/lib/cart";
 
 function initialsFrom(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [name, setName] = useState<string>("");
+  const [cartCount, setCartCount] = useState(0);
   const pathname = usePathname();
   const hide = pathname.startsWith("/employee");
 
@@ -30,7 +32,20 @@ export default function Navbar() {
         setName(stored);
       }
     } catch {}
+
+    // Initialize cart count
+    updateCartCount();
+
+    // Listen for cart updates
+    const handleCartUpdate = () => updateCartCount();
+    window.addEventListener("cart-updated", handleCartUpdate);
+    return () => window.removeEventListener("cart-updated", handleCartUpdate);
   }, []);
+
+  function updateCartCount() {
+    const cart = getCart();
+    setCartCount(getCartItemCount(cart));
+  }
 
   const initials = useMemo(() => (name ? initialsFrom(name) : ""), [name]);
 
@@ -65,8 +80,22 @@ export default function Navbar() {
               <Link href="/#services" className={linkCls}>{dict.nav.services}</Link>
               <Link href="/#about" className={linkCls}>{dict.nav.about}</Link>
               <Link href="/#contact" className={linkCls}>{dict.nav.contact}</Link>
-              <Link href="/shop" className={linkCls}>Shop</Link>
+              <Link href="/products" className={linkCls}>{lang === "en" ? "Products" : "Productos"}</Link>
             </nav>
+
+            {/* Cart Icon with Badge */}
+            <Link href="/cart" className="relative hidden md:flex items-center justify-center h-9 w-9 rounded-md border border-neutral-700 text-gray-200 hover:text-white hover:border-[--gold] transition">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[--gold] text-white text-xs font-semibold flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* Language pill */}
             <div className="relative grid grid-cols-2 items-center rounded-full bg-neutral-800 p-1 border border-neutral-700 overflow-hidden">
@@ -130,7 +159,10 @@ export default function Navbar() {
               <Link href="/#services" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.services}</Link>
               <Link href="/#about" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.about}</Link>
               <Link href="/#contact" className={linkCls} onClick={() => setOpen(false)}>{dict.nav.contact}</Link>
-              <Link href="/shop" className={linkCls} onClick={() => setOpen(false)}>Shop</Link>
+              <Link href="/products" className={linkCls} onClick={() => setOpen(false)}>{lang === "en" ? "Products" : "Productos"}</Link>
+              <Link href="/cart" className={linkCls} onClick={() => setOpen(false)}>
+                {lang === "en" ? "Cart" : "Carrito"} {cartCount > 0 && `(${cartCount})`}
+              </Link>
               <Link href="/cuenta" className={linkCls} onClick={() => setOpen(false)}>Mi Cuenta</Link>
             </nav>
           </div>
