@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { useI18n } from "@/lib/i18n";
