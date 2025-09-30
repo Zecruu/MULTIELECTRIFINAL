@@ -196,7 +196,7 @@ export default function CartPage() {
 
               <button
                 onClick={handleCheckout}
-                className="w-full rounded-md bg-[--gold] text-white px-6 py-3 font-semibold hover:brightness-95 transition"
+                className="w-full rounded-md bg-[--gold] text-white px-6 py-3 font-semibold border-2 border-white hover:bg-white hover:text-[--gold] transition-all duration-200"
               >
                 {lang === "en" ? "Proceed to Checkout" : "Proceder al Pago"}
               </button>

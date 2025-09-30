@@ -190,7 +190,7 @@ export default function ProductsPage() {
                     <button
                       onClick={() => handleAddToCart(product)}
                       disabled={product.stock === 0}
-                      className="flex-1 rounded-md bg-[--gold] text-white px-4 py-2 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                      className="flex-1 rounded-md bg-[--gold] text-white px-4 py-2 text-sm font-medium hover:bg-white hover:text-[--gold] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                       title={lang === "en" ? "Add to Cart" : "Agregar al Carrito"}
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
