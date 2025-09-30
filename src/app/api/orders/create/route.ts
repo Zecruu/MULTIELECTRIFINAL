@@ -150,9 +150,17 @@ export async function POST(req: NextRequest) {
     try {
       publishOrderEvent({
         type: "order-created",
-        id: order.id,
-        orderNumber: order.order_number,
-        customerName: shippingInfo.name,
+        payload: {
+          id: order.id,
+          orderNumber: order.order_number,
+          customerName: shippingInfo.name,
+          order: {
+            orderNumber: order.order_number,
+            customer: {
+              name: shippingInfo.name,
+            },
+          },
+        },
       });
       console.log("[Order Create] SSE event published");
     } catch (sseError) {
