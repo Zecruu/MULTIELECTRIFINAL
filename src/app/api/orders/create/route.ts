@@ -70,18 +70,25 @@ export async function POST(req: NextRequest) {
     // Generate order number
     const orderNumber = `ME-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
+    // Calculate subtotal and tax (for now, tax is 0, subtotal = total)
+    const subtotalCents = totalCents;
+    const taxCents = 0;
+
     // Create order
     const orderId = crypto.randomUUID();
+    console.log("[Order Create] Creating order with ID:", orderId);
     await sql.query(
       `INSERT INTO orders (
-        id, order_number, customer_id, status, total_cents, currency,
+        id, order_number, customer_id, status, subtotal_cents, tax_cents, total_cents, currency,
         payment_method, payment_intent_id, shipping_address, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
       [
         orderId,
         orderNumber,
         customerId,
         "pending",
+        subtotalCents,
+        taxCents,
         totalCents,
         currency || "usd",
         "stripe",
@@ -96,6 +103,7 @@ export async function POST(req: NextRequest) {
         }),
       ]
     );
+    console.log("[Order Create] Order record created successfully");
 
     // Create order items
     for (const item of items) {
