@@ -18,10 +18,10 @@ async function requireAdmin(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const me = await requireAdmin(req);
-  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
+    const me = await requireAdmin(req);
+    if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const url = new URL(req.url);
     const days = parseInt(url.searchParams.get("days") || "30");
     const startDate = new Date();
@@ -87,9 +87,13 @@ export async function GET(req: NextRequest) {
     let totalCustomers = 0;
     let newCustomersThisMonth = 0;
     try {
+      console.log("Attempting to connect to MongoDB for customer data...");
       const db = await getDb();
+      console.log("MongoDB connected successfully");
+
       const customersCollection = db.collection("customers");
       totalCustomers = await customersCollection.countDocuments();
+      console.log("Total customers:", totalCustomers);
 
       const monthStart = new Date();
       monthStart.setDate(1);
@@ -97,8 +101,11 @@ export async function GET(req: NextRequest) {
       newCustomersThisMonth = await customersCollection.countDocuments({
         createdAt: { $gte: monthStart.toISOString() }
       });
+      console.log("New customers this month:", newCustomersThisMonth);
     } catch (mongoErr) {
-      console.error("MongoDB customer query failed:", mongoErr);
+      console.error("MongoDB customer query failed (non-critical):", mongoErr);
+      console.error("MongoDB error details:", mongoErr instanceof Error ? mongoErr.message : String(mongoErr));
+      // Continue with 0 customers - this is non-critical
     }
 
     const repeatCustomersRes = await sql.query<{ count: string }>(
@@ -144,7 +151,14 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("Reports API error:", err);
-    return Response.json({ error: "Server error" }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    console.error("Error details:", { message: errorMessage, stack: errorStack });
+    return Response.json({
+      error: "Server error",
+      message: errorMessage,
+      hint: "Check server logs for details"
+    }, { status: 500 });
   }
 }
 

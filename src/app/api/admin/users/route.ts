@@ -33,13 +33,20 @@ export async function GET(req: NextRequest) {
       `SELECT id, name, email, role, created_at FROM employees ORDER BY created_at DESC`
     );
 
-    // Get customers from MongoDB
-    const db = await getDb();
-    const customersCollection = db.collection("customers");
-    const customers = await customersCollection
-      .find({})
-      .project({ _id: 0, email: 1, name: 1, createdAt: 1 })
-      .toArray();
+    // Get customers from MongoDB (with fallback)
+    let customers: Array<{ email: string; name?: string; createdAt?: string }> = [];
+    try {
+      const db = await getDb();
+      const customersCollection = db.collection("customers");
+      customers = await customersCollection
+        .find({})
+        .project({ _id: 0, email: 1, name: 1, createdAt: 1 })
+        .limit(100) // Limit to prevent timeout
+        .toArray();
+    } catch (mongoErr) {
+      console.error("MongoDB query failed (non-critical):", mongoErr);
+      // Continue without customers - they're optional for admin user management
+    }
 
     // Combine and format
     const users = [
@@ -64,7 +71,8 @@ export async function GET(req: NextRequest) {
     return Response.json({ users });
   } catch (err) {
     console.error("Users API error:", err);
-    return Response.json({ error: "Server error" }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return Response.json({ error: "Server error", message: errorMessage }, { status: 500 });
   }
 }
 
