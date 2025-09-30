@@ -23,13 +23,11 @@ export async function POST(req: NextRequest) {
 
     const stripe = getStripe();
 
-    // Create a PaymentIntent
+    // Create a PaymentIntent - only allow card payments
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount), // Amount in cents
       currency: currency || "usd",
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      payment_method_types: ["card"], // Only allow credit/debit cards
       metadata: {
         items: JSON.stringify(items.map((item: { productId: string; quantity: number }) => ({
           productId: item.productId,

@@ -190,15 +190,24 @@ export default function ProductsPage() {
                     <button
                       onClick={() => handleAddToCart(product)}
                       disabled={product.stock === 0}
-                      className="flex-1 rounded-md bg-[--gold] text-white px-4 py-2 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 rounded-md bg-[--gold] text-white px-4 py-2 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                      title={lang === "en" ? "Add to Cart" : "Agregar al Carrito"}
                     >
-                      {lang === "en" ? "Add to Cart" : "Agregar"}
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
                     </button>
                     <button
                       onClick={() => setSelectedProduct(product)}
-                      className="rounded-md bg-neutral-800 text-gray-300 px-4 py-2 text-sm font-medium hover:bg-neutral-700 transition"
+                      className="rounded-md bg-neutral-800 text-gray-300 px-4 py-2 text-sm font-medium hover:bg-neutral-700 transition flex items-center justify-center"
+                      title={lang === "en" ? "More Info" : "Más Info"}
                     >
-                      {lang === "en" ? "Info" : "Info"}
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
