@@ -63,6 +63,11 @@ export async function ensureSchema() {
 
   await sql`CREATE TABLE IF NOT EXISTS customers (id uuid PRIMARY KEY, email text UNIQUE NOT NULL, name text, phone text, address_json jsonb, created_at timestamptz NOT NULL DEFAULT now());`;
   await sql`CREATE TABLE IF NOT EXISTS orders (id uuid PRIMARY KEY, order_number text UNIQUE NOT NULL, customer_id uuid REFERENCES customers(id), status text NOT NULL, subtotal_cents integer NOT NULL, tax_cents integer NOT NULL, total_cents integer NOT NULL, currency text NOT NULL DEFAULT 'usd', payment_intent_id text, stripe_session_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());`;
+
+  // Add missing columns to orders table
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method text`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address jsonb`;
+
   await sql`CREATE TABLE IF NOT EXISTS order_items (id uuid PRIMARY KEY, order_id uuid REFERENCES orders(id) ON DELETE CASCADE, product_id uuid REFERENCES products(id), sku text NOT NULL, name text NOT NULL, qty integer NOT NULL, unit_price_cents integer NOT NULL, line_total_cents integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS order_sequences (year integer PRIMARY KEY, seq integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS audit_logs (id uuid PRIMARY KEY, actor_id text, action text NOT NULL, product_id uuid, before jsonb, after jsonb, ip text, user_agent text, ts timestamptz NOT NULL DEFAULT now());`;
