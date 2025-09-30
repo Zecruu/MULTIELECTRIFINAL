@@ -213,7 +213,18 @@ export default function CheckoutForm({ cart }: Props) {
           {lang === "en" ? "Payment Information" : "Información de Pago"}
         </h2>
 
-        <PaymentElement />
+        <PaymentElement
+          options={{
+            fields: {
+              billingDetails: {
+                address: 'never'
+              }
+            },
+            terms: {
+              card: 'never'
+            }
+          }}
+        />
       </div>
 
       {/* Error Message */}
