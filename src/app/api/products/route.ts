@@ -163,10 +163,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const me = await requireAuth(req);
   if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
-  await ensureSchema();
+
+  try {
+    await ensureSchema();
+  } catch (schemaErr) {
+    console.error("Schema initialization failed:", schemaErr);
+    return Response.json({ error: "Database initialization failed", details: String(schemaErr) }, { status: 500 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const parsed = CreateSchema.safeParse(body);
-  if (!parsed.success) return Response.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    console.error("Product validation failed:", parsed.error.flatten());
+    return Response.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
+  }
   const d = parsed.data as z.infer<typeof CreateSchema>;
 
   const sku = d.sku?.trim() || `SKU-${Date.now()}`;
@@ -220,14 +230,27 @@ export async function POST(req: NextRequest) {
     await logAudit({ actorId: me.id, action: "product.create", productId: product.id, after: product, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
     return Response.json({ product });
   } catch (err: unknown) {
-    type PgError = { code?: string; originalError?: { code?: string } };
+    type PgError = { code?: string; originalError?: { code?: string }; message?: string };
     const code = (err as PgError)?.code || (err as PgError)?.originalError?.code;
+    const message = (err as PgError)?.message || String(err);
+
+    console.error("create product error:", {
+      code,
+      message,
+      fullError: err,
+      stack: err instanceof Error ? err.stack : undefined
+    });
+
     if (code === "23505") {
       // unique violation
       return Response.json({ error: "Conflict", message: "SKU or slug already exists" }, { status: 409 });
     }
-    console.error("create product error", err);
-    return Response.json({ error: "Server error" }, { status: 500 });
+
+    return Response.json({
+      error: "Server error",
+      message: message.slice(0, 200), // Truncate for safety
+      hint: "Check server logs for details"
+    }, { status: 500 });
   }
 }
 

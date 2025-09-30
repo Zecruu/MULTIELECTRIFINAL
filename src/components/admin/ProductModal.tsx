@@ -99,6 +99,7 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
       if (!res.ok) {
         const j = await res.json().catch(()=>({}));
         console.error("Product save error:", res.status, j);
+
         // Extract detailed validation errors if available
         if (j?.details?.fieldErrors) {
           const fieldErrs = Object.entries(j.details.fieldErrors)
@@ -106,7 +107,11 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
             .join("; ");
           throw new Error(fieldErrs || j?.message || j?.error || "Validation failed");
         }
-        throw new Error(j?.message || j?.error || `Save failed (${res.status})`);
+
+        // Show server error details
+        const errorMsg = j?.message || j?.error || `Server error (${res.status})`;
+        const hint = j?.hint ? ` - ${j.hint}` : "";
+        throw new Error(errorMsg + hint);
       }
       onSaved();
       onClose();

@@ -28,6 +28,11 @@ export async function ensureSchema() {
   // Ensure the DB connection string is wired even if the host uses a different var
   ensurePostgresEnv();
 
+  // Verify we have a connection string
+  if (!process.env.POSTGRES_URL && !process.env.DATABASE_URL) {
+    throw new Error("No Postgres connection string found. Set POSTGRES_URL or DATABASE_URL in environment variables.");
+  }
+
   // Best-effort: ignore if extensions cannot be installed (not required anymore)
   try { await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`; } catch {}
   try { await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`; } catch {}
