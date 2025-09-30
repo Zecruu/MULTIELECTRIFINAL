@@ -7,6 +7,7 @@ import ProductDetailModal from "@/components/ProductDetailModal";
 
 type Product = {
   id: string;
+  sku: string;
   name_en: string;
   name_es: string;
   description_en: string;
