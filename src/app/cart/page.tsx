@@ -3,18 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useI18n } from "@/lib/i18n";
 import { getCart, updateCartItemQuantity, removeFromCart, getCartTotal, getCartItemCount, type Cart } from "@/lib/cart";
 
 export default function CartPage() {
   const { lang } = useI18n();
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: "" });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadCart();
-    
+
     const handleCartUpdate = () => loadCart();
     window.addEventListener("cart-updated", handleCartUpdate);
     return () => window.removeEventListener("cart-updated", handleCartUpdate);
@@ -37,6 +39,13 @@ export default function CartPage() {
   }
 
   function handleCheckout() {
+    // Check if user is authenticated
+    if (status === "unauthenticated") {
+      // Redirect to sign in page with return URL
+      router.push("/auth/signin?callbackUrl=/checkout");
+      return;
+    }
+
     router.push("/checkout");
   }
 
@@ -196,9 +205,12 @@ export default function CartPage() {
 
               <button
                 onClick={handleCheckout}
-                className="w-full rounded-md bg-[--gold] text-white px-6 py-3 font-semibold border-2 border-white hover:bg-white hover:text-[--gold] transition-all duration-200"
+                className="w-full rounded-md bg-white text-neutral-900 px-6 py-3 font-semibold border-2 border-white hover:border-[--gold] hover:shadow-[0_0_15px_rgba(212,175,55,0.5)] transition-all duration-200"
               >
-                {lang === "en" ? "Proceed to Checkout" : "Proceder al Pago"}
+                {status === "unauthenticated"
+                  ? (lang === "en" ? "Sign In to Checkout" : "Iniciar Sesión para Pagar")
+                  : (lang === "en" ? "Proceed to Checkout" : "Proceder al Pago")
+                }
               </button>
 
               <Link
