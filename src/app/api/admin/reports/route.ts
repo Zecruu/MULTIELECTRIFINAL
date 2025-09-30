@@ -1,0 +1,142 @@
+import { NextRequest } from "next/server";
+import { verifyToken } from "@/lib/auth";
+import { sql } from "@vercel/postgres";
+
+export const runtime = "nodejs";
+
+async function requireAdmin(req: NextRequest) {
+  const token = req.cookies.get("employee_token")?.value;
+  if (!token) return null;
+  try {
+    const me = await verifyToken(token, process.env.JWT_SECRET || "dev-secret-change");
+    if (me.role !== "admin") return null;
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const me = await requireAdmin(req);
+  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const url = new URL(req.url);
+    const days = parseInt(url.searchParams.get("days") || "30");
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Sales data
+    const salesRes = await sql.query<{ total_revenue: string; total_orders: string }>(
+      `SELECT 
+        COALESCE(SUM(total_cents), 0) as total_revenue,
+        COUNT(*) as total_orders
+      FROM orders
+      WHERE created_at >= $1`,
+      [startDate.toISOString()]
+    );
+
+    const totalRevenue = parseInt(salesRes.rows[0]?.total_revenue || "0");
+    const totalOrders = parseInt(salesRes.rows[0]?.total_orders || "0");
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Revenue by month (simplified - last 6 months)
+    const revenueByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date();
+      monthStart.setMonth(monthStart.getMonth() - i);
+      monthStart.setDate(1);
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+      const monthRes = await sql.query<{ revenue: string }>(
+        `SELECT COALESCE(SUM(total_cents), 0) as revenue
+        FROM orders
+        WHERE created_at >= $1 AND created_at < $2`,
+        [monthStart.toISOString(), monthEnd.toISOString()]
+      );
+
+      revenueByMonth.push({
+        month: monthStart.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        revenue: parseInt(monthRes.rows[0]?.revenue || "0"),
+      });
+    }
+
+    // Inventory data
+    const lowStockRes = await sql.query<{ id: string; name_en: string; stock: number; min_stock: number }>(
+      `SELECT id, name_en, stock, min_stock
+      FROM products
+      WHERE stock > 0 AND stock <= min_stock
+      ORDER BY stock ASC
+      LIMIT 10`
+    );
+
+    const outOfStockRes = await sql.query<{ id: string; name_en: string }>(
+      `SELECT id, name_en
+      FROM products
+      WHERE stock = 0
+      LIMIT 10`
+    );
+
+    const totalProductsRes = await sql.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM products`
+    );
+
+    // Customer data
+    const totalCustomersRes = await sql.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM customers`
+    );
+
+    const newCustomersRes = await sql.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM customers WHERE created_at >= $1`,
+      [new Date(new Date().setDate(1)).toISOString()] // Start of current month
+    );
+
+    const repeatCustomersRes = await sql.query<{ count: string }>(
+      `SELECT COUNT(DISTINCT customer_id) as count
+      FROM orders
+      WHERE customer_id IN (
+        SELECT customer_id
+        FROM orders
+        GROUP BY customer_id
+        HAVING COUNT(*) > 1
+      )`
+    );
+
+    const totalCustomers = parseInt(totalCustomersRes.rows[0]?.count || "0");
+    const repeatCustomers = parseInt(repeatCustomersRes.rows[0]?.count || "0");
+    const repeatCustomerRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
+
+    return Response.json({
+      sales: {
+        totalRevenue,
+        totalOrders,
+        averageOrderValue,
+        revenueByMonth,
+      },
+      inventory: {
+        lowStockProducts: lowStockRes.rows.map((p) => ({
+          id: p.id,
+          name: p.name_en,
+          stock: p.stock,
+          min_stock: p.min_stock,
+        })),
+        outOfStockProducts: outOfStockRes.rows.map((p) => ({
+          id: p.id,
+          name: p.name_en,
+        })),
+        totalProducts: parseInt(totalProductsRes.rows[0]?.count || "0"),
+      },
+      customers: {
+        totalCustomers,
+        newCustomersThisMonth: parseInt(newCustomersRes.rows[0]?.count || "0"),
+        repeatCustomers,
+        repeatCustomerRate,
+      },
+    });
+  } catch (err) {
+    console.error("Reports API error:", err);
+    return Response.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
