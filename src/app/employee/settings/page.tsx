@@ -11,12 +11,6 @@ type Settings = {
     phone: string;
     logo_url: string;
   };
-  integrations: {
-    stripe_public_key: string;
-    stripe_secret_key: string;
-    aws_s3_bucket: string;
-    aws_access_key: string;
-  };
   security: {
     password_min_length: number;
     require_2fa: boolean;
@@ -25,7 +19,7 @@ type Settings = {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"store" | "integrations" | "security">("store");
+  const [activeTab, setActiveTab] = useState<"store" | "security">("store");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,16 +117,6 @@ export default function SettingsPage() {
             Store Info
           </button>
           <button
-            onClick={() => setActiveTab("integrations")}
-            className={`px-6 py-3 font-medium transition ${
-              activeTab === "integrations"
-                ? "text-[#D4AF37] border-b-2 border-[#D4AF37]"
-                : "text-gray-400 hover:text-gray-300"
-            }`}
-          >
-            Integrations
-          </button>
-          <button
             onClick={() => setActiveTab("security")}
             className={`px-6 py-3 font-medium transition ${
               activeTab === "security"
@@ -208,76 +192,6 @@ export default function SettingsPage() {
                     }
                     className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                     placeholder="https://..."
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Integrations Tab */}
-            {activeTab === "integrations" && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-200 mb-4">API Integrations</h2>
-                <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-yellow-200">
-                    ⚠️ Warning: Keep these credentials secure. Never share them publicly.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Stripe Public Key</label>
-                  <input
-                    type="text"
-                    value={settings.integrations.stripe_public_key}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        integrations: { ...settings.integrations, stripe_public_key: e.target.value },
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="pk_..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Stripe Secret Key</label>
-                  <input
-                    type="password"
-                    value={settings.integrations.stripe_secret_key}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        integrations: { ...settings.integrations, stripe_secret_key: e.target.value },
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                    placeholder="sk_..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">AWS S3 Bucket Name</label>
-                  <input
-                    type="text"
-                    value={settings.integrations.aws_s3_bucket}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        integrations: { ...settings.integrations, aws_s3_bucket: e.target.value },
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">AWS Access Key</label>
-                  <input
-                    type="password"
-                    value={settings.integrations.aws_access_key}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        integrations: { ...settings.integrations, aws_access_key: e.target.value },
-                      })
-                    }
-                    className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
                   />
                 </div>
               </div>

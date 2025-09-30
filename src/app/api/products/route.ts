@@ -360,13 +360,25 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const me = await requireAuth(req);
-  if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const id = new URL(req.url).searchParams.get("id");
-  if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
-  const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
-  await sql`DELETE FROM products WHERE id=${id}`;
-  await logAudit({ actorId: me.id, action: "product.delete", productId: id, before: beforeRes.rows[0] || null, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
-  return Response.json({ ok: true });
+  try {
+    const me = await requireAuth(req);
+    if (!me?.permissions.canManageInventory) return Response.json({ error: "Forbidden" }, { status: 403 });
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
+
+    const beforeRes = await sql.query<DBProductRow>("SELECT * FROM products WHERE id=$1", [id]);
+    await sql`DELETE FROM products WHERE id=${id}`;
+
+    try {
+      await logAudit({ actorId: me.id, action: "product.delete", productId: id, before: beforeRes.rows[0] || null, ip: req.headers.get("x-forwarded-for"), userAgent: req.headers.get("user-agent") });
+    } catch (auditErr) {
+      console.error("Audit log failed (non-critical):", auditErr);
+    }
+
+    return Response.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE product error:", err);
+    return Response.json({ error: "Server error", details: String(err) }, { status: 500 });
+  }
 }
 

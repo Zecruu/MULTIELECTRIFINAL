@@ -54,12 +54,6 @@ export async function GET(req: NextRequest) {
         phone: "(787) 123-4567",
         logo_url: "",
       },
-      integrations: settingsMap.integrations || {
-        stripe_public_key: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
-        stripe_secret_key: "••••••••",
-        aws_s3_bucket: process.env.AWS_S3_BUCKET || "",
-        aws_access_key: "••••••••",
-      },
       security: settingsMap.security || {
         password_min_length: 8,
         require_2fa: false,
@@ -81,7 +75,7 @@ export async function PATCH(req: NextRequest) {
     await ensureSettingsTable();
 
     const body = await req.json();
-    const { store, integrations, security } = body;
+    const { store, security } = body;
 
     // Update each setting
     if (store) {
@@ -91,27 +85,6 @@ export async function PATCH(req: NextRequest) {
         ON CONFLICT (key)
         DO UPDATE SET value = $1, updated_at = NOW()`,
         [JSON.stringify(store)]
-      );
-    }
-
-    if (integrations) {
-      // Don't save actual secrets, just placeholders
-      const safeIntegrations = {
-        ...integrations,
-        stripe_secret_key: integrations.stripe_secret_key === "••••••••" 
-          ? undefined 
-          : integrations.stripe_secret_key,
-        aws_access_key: integrations.aws_access_key === "••••••••" 
-          ? undefined 
-          : integrations.aws_access_key,
-      };
-
-      await sql.query(
-        `INSERT INTO settings (key, value, updated_at)
-        VALUES ('integrations', $1, NOW())
-        ON CONFLICT (key)
-        DO UPDATE SET value = $1, updated_at = NOW()`,
-        [JSON.stringify(safeIntegrations)]
       );
     }
 

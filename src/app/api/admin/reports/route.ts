@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { sql } from "@vercel/postgres";
+import { getDb } from "@/lib/mongo";
 
 export const runtime = "nodejs";
 
@@ -82,15 +83,23 @@ export async function GET(req: NextRequest) {
       `SELECT COUNT(*) as count FROM products`
     );
 
-    // Customer data
-    const totalCustomersRes = await sql.query<{ count: string }>(
-      `SELECT COUNT(*) as count FROM customers`
-    );
+    // Customer data from MongoDB
+    let totalCustomers = 0;
+    let newCustomersThisMonth = 0;
+    try {
+      const db = await getDb();
+      const customersCollection = db.collection("customers");
+      totalCustomers = await customersCollection.countDocuments();
 
-    const newCustomersRes = await sql.query<{ count: string }>(
-      `SELECT COUNT(*) as count FROM customers WHERE created_at >= $1`,
-      [new Date(new Date().setDate(1)).toISOString()] // Start of current month
-    );
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      newCustomersThisMonth = await customersCollection.countDocuments({
+        createdAt: { $gte: monthStart.toISOString() }
+      });
+    } catch (mongoErr) {
+      console.error("MongoDB customer query failed:", mongoErr);
+    }
 
     const repeatCustomersRes = await sql.query<{ count: string }>(
       `SELECT COUNT(DISTINCT customer_id) as count
@@ -103,7 +112,6 @@ export async function GET(req: NextRequest) {
       )`
     );
 
-    const totalCustomers = parseInt(totalCustomersRes.rows[0]?.count || "0");
     const repeatCustomers = parseInt(repeatCustomersRes.rows[0]?.count || "0");
     const repeatCustomerRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
 
@@ -129,7 +137,7 @@ export async function GET(req: NextRequest) {
       },
       customers: {
         totalCustomers,
-        newCustomersThisMonth: parseInt(newCustomersRes.rows[0]?.count || "0"),
+        newCustomersThisMonth,
         repeatCustomers,
         repeatCustomerRate,
       },

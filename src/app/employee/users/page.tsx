@@ -14,26 +14,62 @@ export default function UsersPage() {
   async function load() {
     const meRes = await fetch("/api/employee/me").then(r=>r.json());
     setMe(meRes.me as Me);
-    const j = await fetch("/api/users").then(r=>r.json());
+    const j = await fetch("/api/admin/users").then(r=>r.json());
     setRows(j.users||[]);
   }
   useEffect(()=>{ load(); },[]);
 
   function Form({ user, onSaved }: { user?: Partial<User>; onSaved: ()=>void }) {
     const [v, setV] = useState<Partial<User>>(user||{ role:"employee", status:"Active" });
+    const [password, setPassword] = useState("");
+    const [passwordConfirm, setPasswordConfirm] = useState("");
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string| null>(null);
+    const isNew = !v.id;
+
     function onChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
       const { name, value } = e.target; setV(p=>({ ...p, [name]: value }));
     }
+
     async function onSubmit(e: React.FormEvent) {
       e.preventDefault(); setSaving(true); setErr(null);
+
+      // Validation
+      if (!v.name || !v.email || !v.role) {
+        setErr("Please fill all required fields");
+        setSaving(false);
+        return;
+      }
+
+      if (isNew) {
+        if (!password) {
+          setErr("Password is required for new users");
+          setSaving(false);
+          return;
+        }
+        if (password !== passwordConfirm) {
+          setErr("Passwords do not match");
+          setSaving(false);
+          return;
+        }
+        if (password.length < 6) {
+          setErr("Password must be at least 6 characters");
+          setSaving(false);
+          return;
+        }
+      }
+
       try {
         const method = v.id ? "PATCH" : "POST";
-        const url = "/api/users";
-        const body = v.id ? { id: v.id, name: v.name, email: v.email, role: v.role, status: v.status } : { name: v.name, email: v.email, role: v.role, status: v.status };
+        const url = "/api/admin/users";
+        const body = v.id
+          ? { id: v.id, name: v.name, email: v.email, role: v.role, status: v.status }
+          : { name: v.name, email: v.email, role: v.role, password };
         const res = await fetch(url, { method, headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-        if (!res.ok) throw new Error("save failed");
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Save failed");
+        }
         onSaved();
         setOpen(false);
       } catch (e: unknown) { setErr(e instanceof Error ? e.message : "Error"); }
@@ -43,25 +79,63 @@ export default function UsersPage() {
       <form onSubmit={onSubmit} className="space-y-3">
         <div className="grid md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm mb-1">Name</label>
-            <input name="name" value={v.name||""} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+            <label className="block text-sm mb-1">Name <span className="text-red-400">*</span></label>
+            <input
+              name="name"
+              value={v.name||""}
+              onChange={onChange}
+              required
+              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
           </div>
           <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input name="email" value={v.email||""} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+            <label className="block text-sm mb-1">Email <span className="text-red-400">*</span></label>
+            <input
+              name="email"
+              type="email"
+              value={v.email||""}
+              onChange={onChange}
+              required
+              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            />
           </div>
+          {isNew && (
+            <>
+              <div>
+                <label className="block text-sm mb-1">Password <span className="text-red-400">*</span></label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Confirm Password <span className="text-red-400">*</span></label>
+                <input
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                />
+              </div>
+            </>
+          )}
           <div>
-            <label className="block text-sm mb-1">Role</label>
-            <select name="role" value={v.role||"employee"} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2">
+            <label className="block text-sm mb-1">Role <span className="text-red-400">*</span></label>
+            <select
+              name="role"
+              value={v.role||"employee"}
+              onChange={onChange}
+              required
+              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+            >
               <option value="employee">Employee</option>
               <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Status</label>
-            <select name="status" value={v.status||"Active"} onChange={onChange} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
             </select>
           </div>
         </div>
@@ -76,7 +150,7 @@ export default function UsersPage() {
 
   async function onDelete(id: string) {
     if (!confirm("Delete user?")) return;
-    const res = await fetch(`/api/users?id=${id}`, { method:"DELETE" });
+    const res = await fetch(`/api/admin/users?id=${id}`, { method:"DELETE" });
     if (res.ok) load();
   }
 
