@@ -59,6 +59,18 @@ export async function ensureSchema() {
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_desc_en text`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_title_es text`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_desc_es text`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS min_stock integer DEFAULT 0`;
+
+  // Create employees table
+  await sql`CREATE TABLE IF NOT EXISTS employees (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name text NOT NULL,
+    email text UNIQUE NOT NULL,
+    password text NOT NULL,
+    role text NOT NULL DEFAULT 'employee',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS products_slug_key ON products(slug)`;
 
   await sql`CREATE TABLE IF NOT EXISTS customers (id uuid PRIMARY KEY, email text UNIQUE NOT NULL, name text, phone text, address_json jsonb, created_at timestamptz NOT NULL DEFAULT now());`;

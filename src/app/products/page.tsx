@@ -135,19 +135,29 @@ export default function ProductsPage() {
                   className="group rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-[--gold] transition flex flex-col"
                 >
                   {/* Product Image */}
-                  <div 
-                    className="h-48 rounded-md mb-4 flex items-center justify-center bg-neutral-800/60 overflow-hidden cursor-pointer"
+                  <div
+                    className="h-48 rounded-md mb-4 flex items-center justify-center bg-neutral-800/60 overflow-hidden cursor-pointer relative"
                     onClick={() => setSelectedProduct(product)}
                   >
                     {primaryImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img 
-                        src={primaryImage.url} 
-                        alt={primaryImage.alt || name} 
+                      <img
+                        src={primaryImage.url}
+                        alt={primaryImage.alt || name}
                         className="max-h-full max-w-full object-contain opacity-90 group-hover:opacity-100 transition"
                       />
                     ) : (
                       <div className="text-xs text-neutral-400">No image</div>
+                    )}
+                    {product.stock === 0 && (
+                      <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-red-600 text-white font-semibold">
+                        {lang === "en" ? "Out of Stock" : "Agotado"}
+                      </span>
+                    )}
+                    {product.stock > 0 && product.stock <= 5 && (
+                      <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-yellow-500 text-black font-semibold">
+                        {lang === "en" ? "Low Stock" : "Poco Stock"}
+                      </span>
                     )}
                   </div>
 

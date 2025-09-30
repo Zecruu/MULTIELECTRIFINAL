@@ -98,7 +98,7 @@ export default function Featured() {
                   >
                     {/* Product Image */}
                     <div
-                      className="h-36 rounded-md mb-3 flex items-center justify-center bg-neutral-800/60 overflow-hidden cursor-pointer"
+                      className="h-36 rounded-md mb-3 flex items-center justify-center bg-neutral-800/60 overflow-hidden cursor-pointer relative"
                       onClick={(e) => handleShowInfo(product, e)}
                     >
                       {primaryImage ? (
@@ -110,6 +110,16 @@ export default function Featured() {
                         />
                       ) : (
                         <div className="text-xs text-neutral-400">No image</div>
+                      )}
+                      {product.stock === 0 && (
+                        <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-red-600 text-white font-semibold">
+                          {lang === "en" ? "Out of Stock" : "Agotado"}
+                        </span>
+                      )}
+                      {product.stock > 0 && product.stock <= 5 && (
+                        <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-yellow-500 text-black font-semibold">
+                          {lang === "en" ? "Low Stock" : "Poco Stock"}
+                        </span>
                       )}
                     </div>
 

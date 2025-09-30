@@ -36,6 +36,18 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
+      // First, validate stock availability
+      const stockCheckRes = await fetch("/api/store/check-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart.items }),
+      });
+
+      if (!stockCheckRes.ok) {
+        const stockData = await stockCheckRes.json();
+        throw new Error(stockData.message || "Some items are out of stock");
+      }
+
       const total = getCartTotal(cart);
       const res = await fetch("/api/checkout/create-payment-intent", {
         method: "POST",

@@ -118,6 +118,35 @@ export default function InventoryPage() {
     }
   }
 
+  async function onHide(id: string) {
+    const product = rows.find(p => p.id === id);
+    if (!product) return;
+
+    const isHidden = product.status === "hidden";
+    const action = isHidden ? "unhide" : "hide";
+
+    if (!confirm(`${action === "hide" ? "Hide" : "Unhide"} this product?`)) return;
+
+    try {
+      const res = await fetch(`/api/products?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: isHidden ? "active" : "hidden" })
+      });
+
+      if (res.ok) {
+        alert(`Product ${action === "hide" ? "hidden" : "unhidden"} successfully`);
+        load();
+      } else {
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+        alert(`Failed to ${action} product: ${errorData.message || errorData.error}`);
+      }
+    } catch (err) {
+      console.error(`${action} error:`, err);
+      alert(`Failed to ${action} product. Please try again.`);
+    }
+  }
+
   const canManage = !!me?.permissions?.canManageInventory;
   const initial: ProductInput | undefined = initialForModal ?? (editId ? (() => {
     const r = rows.find(x=>x.id===editId);
@@ -174,7 +203,10 @@ export default function InventoryPage() {
                   <td className="px-3 py-2 space-x-2">
                     <button onClick={()=>{ setInitialForModal(undefined); setEditId(p.id); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
                     <button onClick={()=>{ const r = rows.find(x=>x.id===p.id); if (r) { setInitialForModal({ name_en: r.name_en, name_es: r.name_es, category: r.category, price: String(r.price), stock: String(r.stock) }); } setEditId(null); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Duplicate</button>
-                    <button onClick={()=>onDelete(p.id)} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Delete</button>
+                    <button onClick={()=>onHide(p.id)} className={`text-xs px-2 py-1 rounded ${p.status === "hidden" ? "bg-green-800 hover:bg-green-700" : "bg-yellow-800 hover:bg-yellow-700"}`}>
+                      {p.status === "hidden" ? "Unhide" : "Hide"}
+                    </button>
+                    <button onClick={()=>onDelete(p.id)} className="text-xs px-2 py-1 rounded bg-red-800 hover:bg-red-700">Delete</button>
                   </td>
                 )}
               </tr>

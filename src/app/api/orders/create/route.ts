@@ -106,7 +106,40 @@ export async function POST(req: NextRequest) {
     );
     console.log("[Order Create] Order record created successfully");
 
-    // Create order items
+    // Validate stock availability before creating order items
+    console.log("[Order Create] Validating stock availability");
+    const productIds = items.map(item => item.productId);
+    const stockCheckRes = await sql.query<{ id: string; stock: number; name: string }>(
+      `SELECT id, stock, name FROM products WHERE id = ANY($1)`,
+      [productIds]
+    );
+
+    const stockMap = new Map(stockCheckRes.rows.map(row => [row.id, row]));
+    const outOfStockItems: string[] = [];
+
+    for (const item of items) {
+      const product = stockMap.get(item.productId);
+      if (!product) {
+        console.log(`[Order Create] Product not found: ${item.productId}`);
+        outOfStockItems.push(`${item.name_en} (not found)`);
+      } else if (product.stock < item.quantity) {
+        console.log(`[Order Create] Insufficient stock for ${product.name}: requested ${item.quantity}, available ${product.stock}`);
+        outOfStockItems.push(`${item.name_en} (requested: ${item.quantity}, available: ${product.stock})`);
+      }
+    }
+
+    if (outOfStockItems.length > 0) {
+      console.log("[Order Create] Order failed - items out of stock:", outOfStockItems);
+      // Delete the order we just created since we can't fulfill it
+      await sql.query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+      return NextResponse.json({
+        error: "Some items are out of stock",
+        outOfStockItems,
+        message: `The following items are out of stock or have insufficient quantity: ${outOfStockItems.join(", ")}`
+      }, { status: 400 });
+    }
+
+    // Create order items and update stock
     for (const item of items) {
       const itemId = crypto.randomUUID();
       const unitPriceCents = Math.round(item.price * 100);
