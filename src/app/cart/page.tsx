@@ -3,24 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useI18n } from "@/lib/i18n";
 import { getCart, updateCartItemQuantity, removeFromCart, getCartTotal, getCartItemCount, type Cart } from "@/lib/cart";
 
 export default function CartPage() {
   const { lang } = useI18n();
   const router = useRouter();
-  const { data: session, status } = useSession();
   const [cart, setCart] = useState<Cart>({ items: [], updatedAt: "" });
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadCart();
+    checkAuth();
 
     const handleCartUpdate = () => loadCart();
     window.addEventListener("cart-updated", handleCartUpdate);
     return () => window.removeEventListener("cart-updated", handleCartUpdate);
   }, []);
+
+  async function checkAuth() {
+    try {
+      const res = await fetch("/api/me");
+      setIsAuthenticated(res.ok);
+    } catch {
+      setIsAuthenticated(false);
+    }
+  }
 
   function loadCart() {
     const currentCart = getCart();
@@ -40,9 +49,9 @@ export default function CartPage() {
 
   function handleCheckout() {
     // Check if user is authenticated
-    if (status === "unauthenticated") {
+    if (isAuthenticated === false) {
       // Redirect to sign in page with return URL
-      router.push("/auth/signin?callbackUrl=/checkout");
+      router.push("/login?next=/checkout");
       return;
     }
 
@@ -207,7 +216,7 @@ export default function CartPage() {
                 onClick={handleCheckout}
                 className="w-full rounded-md bg-white text-neutral-900 px-6 py-3 font-semibold border-2 border-white hover:border-[--gold] hover:shadow-[0_0_15px_rgba(212,175,55,0.5)] transition-all duration-200"
               >
-                {status === "unauthenticated"
+                {isAuthenticated === false
                   ? (lang === "en" ? "Sign In to Checkout" : "Iniciar Sesión para Pagar")
                   : (lang === "en" ? "Proceed to Checkout" : "Proceder al Pago")
                 }
