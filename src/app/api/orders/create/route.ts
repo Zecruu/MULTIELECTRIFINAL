@@ -43,12 +43,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing shipping information" }, { status: 400 });
     }
 
-    // Upsert customer
-    const customer = await upsertCustomer(
+    // Upsert customer with address as JSON object
+    const addressJson = {
+      address: shippingInfo.address,
+      city: shippingInfo.city,
+      state: shippingInfo.state,
+      zipCode: shippingInfo.zipCode,
+      phone: shippingInfo.phone,
+    };
+
+    const customerId = await upsertCustomer(
       shippingInfo.email,
       shippingInfo.name,
       shippingInfo.phone || null,
-      shippingInfo.address || null
+      addressJson
     );
 
     // Generate order number
@@ -58,13 +66,13 @@ export async function POST(req: NextRequest) {
     const orderId = crypto.randomUUID();
     await sql.query(
       `INSERT INTO orders (
-        id, order_number, customer_id, status, total_cents, currency, 
+        id, order_number, customer_id, status, total_cents, currency,
         payment_method, payment_intent_id, shipping_address, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())`,
       [
         orderId,
         orderNumber,
-        customer.id,
+        customerId,
         "pending",
         totalCents,
         currency || "usd",
