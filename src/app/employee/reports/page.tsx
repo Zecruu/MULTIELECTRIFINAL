@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type ReportData = {
@@ -54,12 +54,7 @@ export default function ReportsPage() {
   }, [router]);
 
   // Load report data
-  useEffect(() => {
-    if (!me) return;
-    loadReports();
-  }, [me, dateRange]);
-
-  async function loadReports() {
+  const loadReports = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/reports?days=${dateRange}`);
@@ -71,7 +66,12 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [dateRange]);
+
+  useEffect(() => {
+    if (!me) return;
+    loadReports();
+  }, [me, loadReports]);
 
   async function exportReport(format: "csv" | "pdf") {
     try {

@@ -37,12 +37,13 @@ export async function GET(req: NextRequest) {
     let customers: Array<{ email: string; name?: string; createdAt?: string }> = [];
     try {
       const db = await getDb();
-      const customersCollection = db.collection("customers");
-      customers = await customersCollection
+      const customersCollection = db.collection<{ email: string; name?: string; createdAt?: string }>("customers");
+      const result = await customersCollection
         .find({})
         .project({ _id: 0, email: 1, name: 1, createdAt: 1 })
         .limit(100) // Limit to prevent timeout
         .toArray();
+      customers = result as Array<{ email: string; name?: string; createdAt?: string }>;
     } catch (mongoErr) {
       console.error("MongoDB query failed (non-critical):", mongoErr);
       // Continue without customers - they're optional for admin user management
@@ -117,7 +118,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, email, role, status } = body;
+    const { id, name, email, role } = body;
 
     if (!id) {
       return Response.json({ error: "Missing user ID" }, { status: 400 });

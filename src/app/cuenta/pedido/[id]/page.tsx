@@ -32,7 +32,6 @@ type Order = {
 export default function OrderDetailPage() {
   const { lang } = useI18n();
   const params = useParams();
-  const router = useRouter();
   const orderId = params.id as string;
   
   const [order, setOrder] = useState<Order | null>(null);
