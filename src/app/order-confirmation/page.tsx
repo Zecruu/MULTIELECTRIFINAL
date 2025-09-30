@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
@@ -13,7 +14,7 @@ type Order = {
   total_cents: number;
   currency: string;
   shipping_address: string | { name: string; address: string; city: string; state: string; zipCode: string; phone: string };
-  items?: Array<{ product_id: string; product_name?: string; quantity: number; price_cents: number }>;
+  items?: Array<{ product_id: string; product_name?: string; quantity: number; price_cents: number; image_url?: string }>;
 };
 
 function OrderConfirmationContent() {
@@ -171,15 +172,35 @@ function OrderConfirmationContent() {
             <h2 className="text-xl font-semibold mb-4">
               {lang === "en" ? "Items" : "Artículos"}
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {order.items.map((item, idx: number) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-gray-300">
-                    {item.quantity}x {item.product_name || `Product ${item.product_id}`}
-                  </span>
-                  <span className="text-gray-200">
+                <div key={idx} className="flex gap-4 items-center">
+                  {/* Product Image */}
+                  {item.image_url && (
+                    <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
+                      <Image
+                        src={item.image_url}
+                        alt={item.product_name || "Product"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Product Details */}
+                  <div className="flex-1">
+                    <div className="text-gray-200 font-medium">
+                      {item.product_name || `Product ${item.product_id}`}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {lang === "en" ? "Quantity" : "Cantidad"}: {item.quantity}
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-gray-200 font-medium">
                     ${((item.price_cents * item.quantity) / 100).toFixed(2)}
-                  </span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
 import { ensureSchema, upsertCustomer } from "@/lib/db";
+import { publishOrderEvent } from "@/lib/sse";
 
 export const runtime = "nodejs";
 
@@ -144,6 +145,20 @@ export async function POST(req: NextRequest) {
     const order = orderRes.rows[0];
 
     console.log("[Order Create] Order created successfully:", order.id);
+
+    // Publish SSE event for employee notifications
+    try {
+      publishOrderEvent({
+        type: "order-created",
+        id: order.id,
+        orderNumber: order.order_number,
+        customerName: shippingInfo.name,
+      });
+      console.log("[Order Create] SSE event published");
+    } catch (sseError) {
+      console.error("[Order Create] Failed to publish SSE event:", sseError);
+    }
+
     return NextResponse.json({
       success: true,
       order: {

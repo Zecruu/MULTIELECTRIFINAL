@@ -18,6 +18,7 @@ export default function CheckoutForm({ cart }: Props) {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
     email: "",
@@ -27,6 +28,32 @@ export default function CheckoutForm({ cart }: Props) {
     state: "",
     zipCode: "",
   });
+
+  // Load customer data on mount
+  useEffect(() => {
+    async function loadCustomerData() {
+      try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const data = await res.json();
+          const me = data.me;
+
+          setShippingInfo(prev => ({
+            ...prev,
+            name: me.name || prev.name,
+            email: me.email || prev.email,
+            phone: me.phone || prev.phone,
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to load customer data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCustomerData();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
