@@ -108,16 +108,23 @@ export async function POST(req: NextRequest) {
     // Create order items
     for (const item of items) {
       const itemId = crypto.randomUUID();
+      const unitPriceCents = Math.round(item.price * 100);
+      const lineTotalCents = unitPriceCents * item.quantity;
+
+      console.log(`[Order Create] Adding item: ${item.name_en} x${item.quantity}`);
       await sql.query(
         `INSERT INTO order_items (
-          id, order_id, product_id, quantity, price_cents, created_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW())`,
+          id, order_id, product_id, sku, name, qty, unit_price_cents, line_total_cents
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           itemId,
           orderId,
           item.productId,
+          item.productId, // Using productId as SKU for now
+          item.name_en,
           item.quantity,
-          Math.round(item.price * 100),
+          unitPriceCents,
+          lineTotalCents,
         ]
       );
 
