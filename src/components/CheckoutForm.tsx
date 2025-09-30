@@ -51,6 +51,20 @@ export default function CheckoutForm({ cart }: Props) {
         confirmParams: {
           return_url: `${window.location.origin}/order-confirmation`,
           receipt_email: shippingInfo.email,
+          payment_method_data: {
+            billing_details: {
+              name: shippingInfo.name,
+              email: shippingInfo.email,
+              phone: shippingInfo.phone || undefined,
+              address: {
+                line1: shippingInfo.address,
+                city: shippingInfo.city,
+                state: shippingInfo.state || undefined,
+                postal_code: shippingInfo.zipCode || undefined,
+                country: 'US',
+              },
+            },
+          },
         },
         redirect: "if_required",
       });
@@ -216,9 +230,7 @@ export default function CheckoutForm({ cart }: Props) {
         <PaymentElement
           options={{
             fields: {
-              billingDetails: {
-                address: 'never'
-              }
+              billingDetails: 'never'
             },
             terms: {
               card: 'never'
