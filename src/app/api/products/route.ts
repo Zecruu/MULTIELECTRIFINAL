@@ -390,6 +390,24 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Product not found" }, { status: 404 });
     }
 
+    // Check if product is used in any orders
+    const orderItemsRes = await sql.query<{ count: string }>(
+      "SELECT COUNT(*) as count FROM order_items WHERE product_id = $1",
+      [id]
+    );
+    const orderItemCount = parseInt(orderItemsRes.rows[0]?.count || "0");
+    console.log("Product used in", orderItemCount, "order items");
+
+    if (orderItemCount > 0) {
+      console.log("Cannot delete product - it's referenced in orders");
+      return Response.json({
+        error: "Cannot delete product",
+        message: `This product is part of ${orderItemCount} order(s) and cannot be deleted. Consider hiding it instead by setting its status to 'hidden'.`,
+        cannotDelete: true,
+        orderCount: orderItemCount
+      }, { status: 409 }); // 409 Conflict
+    }
+
     // Delete the product
     await sql.query("DELETE FROM products WHERE id=$1", [id]);
     console.log("Product deleted successfully");
@@ -411,13 +429,27 @@ export async function DELETE(req: NextRequest) {
     return Response.json({ ok: true });
   } catch (err) {
     console.error("DELETE product error:", err);
+
+    // Check if it's a foreign key constraint error
+    type PgError = { code?: string; detail?: string; constraint?: string };
+    const pgErr = err as PgError;
+
+    if (pgErr.code === "23503" && pgErr.constraint === "order_items_product_id_fkey") {
+      console.log("Foreign key constraint violation detected");
+      return Response.json({
+        error: "Cannot delete product",
+        message: "This product is part of existing orders and cannot be deleted. Consider hiding it instead by setting its status to 'hidden'.",
+        cannotDelete: true
+      }, { status: 409 });
+    }
+
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : undefined;
     console.error("Error stack:", errorStack);
     return Response.json({
       error: "Server error",
       message: errorMessage,
-      stack: errorStack?.split('\n').slice(0, 3).join('\n') // First 3 lines of stack
+      stack: errorStack?.split('\n').slice(0, 3).join('\n')
     }, { status: 500 });
   }
 }

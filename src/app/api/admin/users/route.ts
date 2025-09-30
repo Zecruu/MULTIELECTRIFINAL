@@ -18,10 +18,18 @@ async function requireAdmin(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const me = await requireAdmin(req);
-  if (!me) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
+    console.log("Users API: Starting request");
+
+    const me = await requireAdmin(req);
+    console.log("Users API: Auth check complete", me ? "authenticated" : "not authenticated");
+
+    if (!me) {
+      console.log("Users API: Unauthorized - no admin user");
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("Users API: Fetching employees from PostgreSQL");
     // Get employees from PostgreSQL
     const employeesRes = await sql.query<{
       id: string;
@@ -32,48 +40,33 @@ export async function GET(req: NextRequest) {
     }>(
       `SELECT id, name, email, role, created_at FROM employees ORDER BY created_at DESC`
     );
+    console.log("Users API: Found", employeesRes.rows.length, "employees");
 
-    // Get customers from MongoDB (with fallback)
-    let customers: Array<{ email: string; name?: string; createdAt?: string }> = [];
-    try {
-      const db = await getDb();
-      const customersCollection = db.collection<{ email: string; name?: string; createdAt?: string }>("customers");
-      const result = await customersCollection
-        .find({})
-        .project({ _id: 0, email: 1, name: 1, createdAt: 1 })
-        .limit(100) // Limit to prevent timeout
-        .toArray();
-      customers = result as Array<{ email: string; name?: string; createdAt?: string }>;
-    } catch (mongoErr) {
-      console.error("MongoDB query failed (non-critical):", mongoErr);
-      // Continue without customers - they're optional for admin user management
-    }
+    // Skip MongoDB customers for now to isolate the issue
+    console.log("Users API: Skipping MongoDB customers (temporarily disabled)");
 
-    // Combine and format
-    const users = [
-      ...employeesRes.rows.map((e) => ({
-        id: e.id,
-        name: e.name,
-        email: e.email,
-        role: e.role as "employee" | "admin",
-        status: "active" as const,
-        created_at: e.created_at,
-      })),
-      ...customers.map((c) => ({
-        id: c.email, // Use email as ID for customers
-        name: c.name || null,
-        email: c.email,
-        role: "customer" as const,
-        status: "active" as const,
-        created_at: c.createdAt || new Date().toISOString(),
-      })),
-    ];
+    // Format employees only
+    const users = employeesRes.rows.map((e) => ({
+      id: e.id,
+      name: e.name,
+      email: e.email,
+      role: e.role as "employee" | "admin",
+      status: "active" as const,
+      created_at: e.created_at,
+    }));
 
+    console.log("Users API: Returning", users.length, "users");
     return Response.json({ users });
   } catch (err) {
     console.error("Users API error:", err);
     const errorMessage = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: "Server error", message: errorMessage }, { status: 500 });
+    const errorStack = err instanceof Error ? err.stack : undefined;
+    console.error("Users API error details:", { message: errorMessage, stack: errorStack });
+    return Response.json({
+      error: "Server error",
+      message: errorMessage,
+      stack: errorStack?.split('\n').slice(0, 5).join('\n')
+    }, { status: 500 });
   }
 }
 

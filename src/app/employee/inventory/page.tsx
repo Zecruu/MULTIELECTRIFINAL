@@ -87,9 +87,35 @@ export default function InventoryPage() {
 
 
   async function onDelete(id: string) {
-    if (!confirm("Delete this product?")) return;
-    const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
-    if (res.ok) load();
+    if (!confirm("Delete this product? This action cannot be undone.")) return;
+
+    try {
+      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
+
+      if (res.ok) {
+        alert("Product deleted successfully");
+        load();
+        return;
+      }
+
+      // Handle error responses
+      const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+
+      if (res.status === 409 && errorData.cannotDelete) {
+        // Product is in orders - show helpful message
+        alert(
+          `❌ Cannot Delete Product\n\n` +
+          `${errorData.message}\n\n` +
+          `Tip: You can hide this product from customers by editing it and setting the status to "Hidden".`
+        );
+      } else {
+        // Other error
+        alert(`Failed to delete product: ${errorData.message || errorData.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete product. Please try again.");
+    }
   }
 
   const canManage = !!me?.permissions?.canManageInventory;
