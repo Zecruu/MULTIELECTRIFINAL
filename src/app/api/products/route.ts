@@ -105,6 +105,20 @@ async function requireAuth(req: NextRequest): Promise<Me | null> {
 }
 
 function mapRowToVM(row: DBProductRow): ProductVM {
+  // Handle updated_at which can be string or Date object
+  let updatedAt: string;
+  if (row.updated_at) {
+    if (typeof row.updated_at === 'string') {
+      updatedAt = row.updated_at.slice(0, 10);
+    } else if (row.updated_at instanceof Date) {
+      updatedAt = row.updated_at.toISOString().slice(0, 10);
+    } else {
+      updatedAt = String(row.updated_at).slice(0, 10);
+    }
+  } else {
+    updatedAt = new Date().toISOString().slice(0, 10);
+  }
+
   return {
     id: row.id,
     sku: row.sku ?? "",
@@ -123,7 +137,7 @@ function mapRowToVM(row: DBProductRow): ProductVM {
     visible: row.visible ?? true,
     images: Array.isArray(row.images) ? row.images : (row.image_url ? [{ url: row.image_url, primary: true }] : []),
     slug: row.slug ?? undefined,
-    updatedAt: row.updated_at?.slice(0,10) ?? new Date().toISOString().slice(0,10),
+    updatedAt,
   };
 }
 
