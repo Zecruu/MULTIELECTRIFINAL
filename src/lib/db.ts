@@ -152,7 +152,7 @@ export interface OrderDetail {
   id: string; order_number: string; status: DbOrderStatus; created_at: string;
   subtotal_cents: number; tax_cents: number; total_cents: number; currency: string;
   customer: { email: string; name: string | null };
-  items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>;
+  items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number; image_url?: string }>;
 }
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
@@ -160,6 +160,19 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
   if (oRes.rows.length === 0) return null;
   const row = oRes.rows[0];
   const iRes = await sql.query<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>(`SELECT id, product_id, sku, name, qty, unit_price_cents, line_total_cents FROM order_items WHERE order_id=$1 ORDER BY name`, [id]);
+
+  // Fetch product images
+  const productIds = iRes.rows.map(i => i.product_id);
+  const products: Map<string, { image_url: string | null; images: unknown }> = new Map();
+
+  if (productIds.length > 0) {
+    const pRes = await sql.query<{ id: string; image_url: string | null; images: unknown }>(
+      `SELECT id, image_url, images FROM products WHERE id = ANY($1)`,
+      [productIds]
+    );
+    pRes.rows.forEach(p => products.set(p.id, p));
+  }
+
   return {
     id: row.id,
     order_number: row.order_number,
@@ -170,7 +183,16 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     total_cents: row.total_cents,
     currency: row.currency,
     customer: { email: row.customer_email, name: row.customer_name },
-    items: iRes.rows,
+    items: iRes.rows.map(i => {
+      const product = products.get(i.product_id);
+      const images = product?.images ? (Array.isArray(product.images) ? product.images : []) : [];
+      const imageUrl = images.length > 0 ? images[0] : product?.image_url;
+
+      return {
+        ...i,
+        image_url: imageUrl || undefined,
+      };
+    }),
   };
 }
 

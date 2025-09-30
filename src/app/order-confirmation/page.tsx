@@ -14,7 +14,15 @@ type Order = {
   total_cents: number;
   currency: string;
   shipping_address: string | { name: string; address: string; city: string; state: string; zipCode: string; phone: string };
-  items?: Array<{ product_id: string; product_name?: string; quantity: number; price_cents: number; image_url?: string }>;
+  items?: Array<{
+    id: string;
+    product_id: string;
+    name: string;
+    qty: number;
+    unit_price_cents: number;
+    line_total_cents: number;
+    image_url?: string;
+  }>;
 };
 
 function OrderConfirmationContent() {
@@ -28,7 +36,7 @@ function OrderConfirmationContent() {
   useEffect(() => {
     async function loadOrder() {
       try {
-        const res = await fetch(`/api/orders?id=${orderId}`);
+        const res = await fetch(`/api/orders/${orderId}`);
         if (!res.ok) {
           throw new Error("Failed to load order");
         }
@@ -180,7 +188,7 @@ function OrderConfirmationContent() {
                     <div className="relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
                       <Image
                         src={item.image_url}
-                        alt={item.product_name || "Product"}
+                        alt={item.name || "Product"}
                         fill
                         className="object-cover"
                       />
@@ -190,16 +198,16 @@ function OrderConfirmationContent() {
                   {/* Product Details */}
                   <div className="flex-1">
                     <div className="text-gray-200 font-medium">
-                      {item.product_name || `Product ${item.product_id}`}
+                      {item.name || `Product ${item.product_id}`}
                     </div>
                     <div className="text-sm text-gray-400">
-                      {lang === "en" ? "Quantity" : "Cantidad"}: {item.quantity}
+                      {lang === "en" ? "Quantity" : "Cantidad"}: {item.qty}
                     </div>
                   </div>
 
                   {/* Price */}
                   <div className="text-gray-200 font-medium">
-                    ${((item.price_cents * item.quantity) / 100).toFixed(2)}
+                    ${(item.line_total_cents / 100).toFixed(2)}
                   </div>
                 </div>
               ))}
