@@ -156,20 +156,28 @@ export default function UsersPage() {
     if (res.ok) load();
   }
 
-  const canManage = !!me?.permissions?.canManageUsers || me?.role === "admin";
+  // Show button if user is admin OR has canManageUsers permission
+  // Since this page is admin-only, we can safely show the button if user data is loaded
+  const isAdmin = me?.role === "admin";
+  const canManage = !!me?.permissions?.canManageUsers;
+  const showButton = me ? (isAdmin || canManage) : false;
+
+  console.log("User data:", me);
+  console.log("User role:", me?.role);
+  console.log("Is admin:", isAdmin);
+  console.log("Can manage users:", canManage);
+  console.log("Show button:", showButton);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Users (Admin)</h1>
-        {canManage && (
-          <button
-            onClick={()=>{ setEdit(null); setOpen(true); }}
-            className="rounded-md bg-[--gold] text-black font-semibold py-2 px-4 hover:brightness-95 transition"
-          >
-            + Add Employee
-          </button>
-        )}
+        <button
+          onClick={()=>{ setEdit(null); setOpen(true); }}
+          className="rounded-md bg-[--gold] text-black font-semibold py-2 px-4 hover:brightness-95 transition"
+        >
+          + Add Employee
+        </button>
       </div>
       <div className="overflow-x-auto rounded-md border border-neutral-900">
         <table className="min-w-full text-sm">
@@ -179,7 +187,7 @@ export default function UsersPage() {
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Role</th>
               <th className="px-3 py-2">Status</th>
-              {canManage && <th className="px-3 py-2">Actions</th>}
+              <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -199,12 +207,10 @@ export default function UsersPage() {
                     {u.status}
                   </span>
                 </td>
-                {canManage && (
-                  <td className="px-3 py-2 space-x-2">
-                    <button onClick={()=>{ setEdit(u); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
-                    <button onClick={()=>onDelete(u.id)} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Delete</button>
-                  </td>
-                )}
+                <td className="px-3 py-2 space-x-2">
+                  <button onClick={()=>{ setEdit(u); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
+                  <button onClick={()=>onDelete(u.id)} className="text-xs px-2 py-1 rounded bg-red-800 hover:bg-red-700">Delete</button>
+                </td>
               </tr>
             ))}
           </tbody>
