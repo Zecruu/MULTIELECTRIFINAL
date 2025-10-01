@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { sql } from "@vercel/postgres";
 import { getDb } from "@/lib/mongo";
+import { ensureSchema } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,10 @@ async function requireAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     console.log("Users API: Starting request");
+
+    // Ensure schema exists
+    await ensureSchema();
+    console.log("Users API: Schema ensured");
 
     const me = await requireAdmin(req);
     console.log("Users API: Auth check complete", me ? "authenticated" : "not authenticated");
