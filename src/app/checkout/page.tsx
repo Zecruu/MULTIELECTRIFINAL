@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { getCart, getCartTotal, type Cart } from "@/lib/cart";
+import { getCart, getCartTotal, getCartSubtotal, getCartTax, type Cart } from "@/lib/cart";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "@/components/CheckoutForm";
@@ -74,6 +74,8 @@ export default function CheckoutPage() {
     }
   }
 
+  const subtotal = getCartSubtotal(cart);
+  const tax = getCartTax(cart);
   const total = getCartTotal(cart);
 
   if (loading || !clientSecret) {
@@ -157,14 +159,24 @@ export default function CheckoutPage() {
                 })}
               </div>
 
-              <div className="border-t border-neutral-700 pt-3 flex justify-between text-lg font-semibold">
-                <span>{lang === "en" ? "Total" : "Total"}</span>
-                <span style={{ color: "var(--gold)" }}>${total.toFixed(2)}</span>
+              <div className="border-t border-neutral-700 pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">{lang === "en" ? "Subtotal" : "Subtotal"}</span>
+                  <span className="text-gray-200">${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">{lang === "en" ? "Tax (11.5%)" : "Impuesto (11.5%)"}</span>
+                  <span className="text-gray-200">${tax.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-neutral-700 pt-2 flex justify-between text-lg font-semibold">
+                  <span>{lang === "en" ? "Total" : "Total"}</span>
+                  <span style={{ color: "var(--gold)" }}>${total.toFixed(2)}</span>
+                </div>
               </div>
 
               <div className="mt-4 text-xs text-gray-500">
-                {lang === "en" 
-                  ? "Secure payment powered by Stripe" 
+                {lang === "en"
+                  ? "Secure payment powered by Stripe"
                   : "Pago seguro con Stripe"}
               </div>
             </div>

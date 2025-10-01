@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-import { getCart, updateCartItemQuantity, removeFromCart, getCartTotal, getCartItemCount, type Cart } from "@/lib/cart";
+import { getCart, updateCartItemQuantity, removeFromCart, getCartTotal, getCartSubtotal, getCartTax, getCartItemCount, type Cart } from "@/lib/cart";
 
 export default function CartPage() {
   const { lang } = useI18n();
@@ -58,6 +58,8 @@ export default function CartPage() {
     router.push("/checkout");
   }
 
+  const subtotal = getCartSubtotal(cart);
+  const tax = getCartTax(cart);
   const total = getCartTotal(cart);
   const itemCount = getCartItemCount(cart);
 
@@ -194,17 +196,15 @@ export default function CartPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">
-                    {lang === "en" ? "Items" : "Artículos"} ({itemCount})
+                    {lang === "en" ? "Subtotal" : "Subtotal"} ({itemCount} {lang === "en" ? "items" : "artículos"})
                   </span>
-                  <span className="text-gray-200">${total.toFixed(2)}</span>
+                  <span className="text-gray-200">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">
-                    {lang === "en" ? "Shipping" : "Envío"}
+                    {lang === "en" ? "Tax (11.5%)" : "Impuesto (11.5%)"}
                   </span>
-                  <span className="text-gray-200">
-                    {lang === "en" ? "Calculated at checkout" : "Calculado al pagar"}
-                  </span>
+                  <span className="text-gray-200">${tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-neutral-700 pt-3 flex justify-between text-lg font-semibold">
                   <span>{lang === "en" ? "Total" : "Total"}</span>

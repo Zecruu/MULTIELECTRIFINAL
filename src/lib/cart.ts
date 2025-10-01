@@ -81,8 +81,22 @@ export function clearCart(): Cart {
   return cart;
 }
 
-export function getCartTotal(cart: Cart): number {
+export function getCartSubtotal(cart: Cart): number {
   return cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+}
+
+// Puerto Rico sales tax rate
+export const TAX_RATE = 0.115; // 11.5%
+
+export function getCartTax(cart: Cart): number {
+  const subtotal = getCartSubtotal(cart);
+  return subtotal * TAX_RATE;
+}
+
+export function getCartTotal(cart: Cart): number {
+  const subtotal = getCartSubtotal(cart);
+  const tax = getCartTax(cart);
+  return subtotal + tax;
 }
 
 export function getCartItemCount(cart: Cart): number {
