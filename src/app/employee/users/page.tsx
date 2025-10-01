@@ -193,11 +193,13 @@ export default function UsersPage() {
           <tbody>
             {rows.map(u => (
               <tr key={u.id} className="odd:bg-neutral-950 even:bg-neutral-900/20">
-                <td className="px-3 py-2 font-medium">{u.name}</td>
-                <td className="px-3 py-2">{u.email}</td>
+                <td className="px-3 py-2 font-medium text-gray-200">{u.name}</td>
+                <td className="px-3 py-2 text-gray-300">{u.email}</td>
                 <td className="px-3 py-2">
                   <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                    u.role === "admin" ? "bg-[--gold] text-black" : "bg-neutral-700 text-white"
+                    u.role === "admin"
+                      ? "bg-[#D4AF37] text-black"
+                      : "bg-neutral-700 text-white"
                   }`}>
                     {u.role === "admin" ? "Admin" : "Employee"}
                   </span>
