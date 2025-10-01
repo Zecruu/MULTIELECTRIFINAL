@@ -13,6 +13,8 @@ export default function UsersPage() {
 
   async function load() {
     const meRes = await fetch("/api/employee/me").then(r=>r.json());
+    console.log("Current user:", meRes.me);
+    console.log("Can manage users:", meRes.me?.permissions?.canManageUsers);
     setMe(meRes.me as Me);
     const j = await fetch("/api/admin/users").then(r=>r.json());
     setRows(j.users||[]);
@@ -154,38 +156,49 @@ export default function UsersPage() {
     if (res.ok) load();
   }
 
-  const canManage = !!me?.permissions?.canManageUsers;
+  const canManage = !!me?.permissions?.canManageUsers || me?.role === "admin";
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Users (Admin)</h1>
         {canManage && (
-          <button onClick={()=>{ setEdit(null); setOpen(true); }} className="rounded-md bg-[--gold] text-black font-semibold py-2 px-3 hover:brightness-95">New User</button>
+          <button
+            onClick={()=>{ setEdit(null); setOpen(true); }}
+            className="rounded-md bg-[--gold] text-black font-semibold py-2 px-4 hover:brightness-95 transition"
+          >
+            + Add Employee
+          </button>
         )}
       </div>
       <div className="overflow-x-auto rounded-md border border-neutral-900">
         <table className="min-w-full text-sm">
           <thead className="bg-neutral-900/50">
             <tr className="text-left">
-              <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Role</th>
               <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Last Login</th>
               {canManage && <th className="px-3 py-2">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map(u => (
               <tr key={u.id} className="odd:bg-neutral-950 even:bg-neutral-900/20">
-                <td className="px-3 py-2">{u.id}</td>
-                <td className="px-3 py-2">{u.name}</td>
+                <td className="px-3 py-2 font-medium">{u.name}</td>
                 <td className="px-3 py-2">{u.email}</td>
-                <td className="px-3 py-2">{u.role}</td>
-                <td className="px-3 py-2">{u.status}</td>
-                <td className="px-3 py-2">{u.lastLogin?.slice(0,10) || "-"}</td>
+                <td className="px-3 py-2">
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                    u.role === "admin" ? "bg-[--gold] text-black" : "bg-neutral-700 text-white"
+                  }`}>
+                    {u.role === "admin" ? "Admin" : "Employee"}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-green-900 text-green-200">
+                    {u.status}
+                  </span>
+                </td>
                 {canManage && (
                   <td className="px-3 py-2 space-x-2">
                     <button onClick={()=>{ setEdit(u); setOpen(true); }} className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700">Edit</button>
@@ -197,8 +210,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
-      <Modal open={open} onClose={()=>setOpen(false)} title={edit?"Edit User":"New User"}>
-        <Form user={edit||undefined} onSaved={load} />
+      <Modal open={open} onClose={()=>setOpen(false)} title={edit ? "Edit Employee" : "Add New Employee"}>
+        <Form user={edit||undefined} onSaved={()=>{ load(); setOpen(false); }} />
       </Modal>
     </div>
   );
