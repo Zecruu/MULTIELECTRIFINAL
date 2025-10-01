@@ -143,8 +143,8 @@ export default function UsersPage() {
         </div>
         {err && <p className="text-sm text-red-400">{err}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={()=>setOpen(false)} className="rounded-md px-3 py-2 text-sm bg-neutral-800 hover:bg-neutral-700">Cancel</button>
-          <button disabled={saving} className="rounded-md px-3 py-2 text-sm font-semibold bg-[--gold] text-black hover:brightness-95 disabled:opacity-60">{saving?"Saving...":"Save"}</button>
+          <button type="button" onClick={()=>setOpen(false)} className="rounded-md px-3 py-2 text-sm text-white bg-neutral-800 hover:bg-neutral-700">Cancel</button>
+          <button disabled={saving} className="rounded-md px-3 py-2 text-sm font-semibold bg-[#D4AF37] text-white hover:brightness-95 disabled:opacity-60">{saving?"Saving...":"Save"}</button>
         </div>
       </form>
     );
@@ -174,7 +174,7 @@ export default function UsersPage() {
         <h1 className="text-2xl font-semibold" style={{ color: "var(--gold)" }}>Users (Admin)</h1>
         <button
           onClick={()=>{ setEdit(null); setOpen(true); }}
-          className="rounded-md bg-[--gold] text-black font-semibold py-2 px-4 hover:brightness-95 transition"
+          className="rounded-md bg-[#D4AF37] text-white font-semibold py-2 px-4 hover:brightness-95 transition"
         >
           + Add Employee
         </button>
