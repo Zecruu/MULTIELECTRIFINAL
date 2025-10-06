@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Hero() {
   const { dict } = useI18n();
@@ -27,8 +28,16 @@ export default function Hero() {
               </Link>
             </div>
           </div>
-          <div className="hidden md:block">
-            <div className="aspect-video w-full rounded-xl border border-neutral-800 bg-gradient-to-br from-yellow-900/20 to-yellow-600/10" />
+          <div className="hidden md:flex justify-center items-center">
+            <div className="relative w-full max-w-md aspect-square">
+              <Image
+                src="/img/MULTI ELECTRCI LOGO_LE_upscale_balanced_x4.jpg"
+                alt={dict.brand}
+                fill
+                className="object-contain rounded-xl"
+                priority
+              />
+            </div>
           </div>
         </div>
       </div>
