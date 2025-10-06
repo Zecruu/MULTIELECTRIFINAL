@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
+import Link from "next/link";
 
 export default function Footer() {
   const { dict } = useI18n();
@@ -64,29 +65,29 @@ export default function Footer() {
             </div>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a className="hover:text-[--gold] transition" href="/#home">
+                <Link className="hover:text-[--gold] transition" href="/#home">
                   {dict.nav.home}
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="hover:text-[--gold] transition" href="/#services">
+                <Link className="hover:text-[--gold] transition" href="/#services">
                   {dict.nav.services}
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="hover:text-[--gold] transition" href="/#about">
+                <Link className="hover:text-[--gold] transition" href="/#about">
                   {dict.nav.about}
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="hover:text-[--gold] transition" href="/products">
+                <Link className="hover:text-[--gold] transition" href="/products">
                   {dict.nav.products || "Products"}
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="hover:text-[--gold] transition" href="/cuenta">
+                <Link className="hover:text-[--gold] transition" href="/cuenta">
                   {dict.footer.myAccount || "My Account"}
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

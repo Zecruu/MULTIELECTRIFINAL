@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { sql } from "@vercel/postgres";
-import { getDb } from "@/lib/mongo";
 import { ensureSchema } from "@/lib/db";
 
 export const runtime = "nodejs";
