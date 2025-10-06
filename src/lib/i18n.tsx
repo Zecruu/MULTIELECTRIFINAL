@@ -8,11 +8,11 @@ const GOLD = "#D4AF37"; // gold accent
 
 type Dictionary = {
   brand: string;
-  nav: { home: string; services: string; about: string; contact: string };
+  nav: { home: string; services: string; about: string; contact: string; products: string };
   hero: { title: string; subtitle: string; cta: string };
   featured: { title: string; viewAll: string };
   services: { title: string; bullets: string[] };
-  footer: { contact: string; address: string; phone: string; email: string; rights: string };
+  footer: { contact: string; address: string; phone: string; email: string; rights: string; viewMap: string; quickLinks: string; myAccount: string; allRights: string };
   langBadge: { en: string; es: string };
   gold: string;
 };
@@ -20,7 +20,7 @@ type Dictionary = {
 const dictionaries: Record<Lang, Dictionary> = {
   en: {
     brand: "Multi Electric Supply",
-    nav: { home: "Home", services: "Services", about: "About", contact: "Contact" },
+    nav: { home: "Home", services: "Services", about: "About", contact: "Contact", products: "Products" },
     hero: {
       title: "Powering Your Projects With Premium Electrical Supplies",
       subtitle: "Wholesale pricing, fast delivery, and expert support.",
@@ -41,13 +41,17 @@ const dictionaries: Record<Lang, Dictionary> = {
       phone: "Phone",
       email: "Email",
       rights: "All rights reserved.",
+      viewMap: "View on Google Maps",
+      quickLinks: "Quick Links",
+      myAccount: "My Account",
+      allRights: "All rights reserved.",
     },
     langBadge: { en: "EN", es: "ES" },
     gold: GOLD,
   },
   es: {
     brand: "Multi Electric Supply",
-    nav: { home: "Inicio", services: "Servicios", about: "Nosotros", contact: "Contacto" },
+    nav: { home: "Inicio", services: "Servicios", about: "Nosotros", contact: "Contacto", products: "Productos" },
     hero: {
       title: "Impulsamos tus proyectos con insumos eléctricos premium",
       subtitle: "Precios al por mayor, entrega rápida y soporte experto.",
@@ -68,6 +72,10 @@ const dictionaries: Record<Lang, Dictionary> = {
       phone: "Teléfono",
       email: "Correo",
       rights: "Todos los derechos reservados.",
+      viewMap: "Ver en Google Maps",
+      quickLinks: "Enlaces Rápidos",
+      myAccount: "Mi Cuenta",
+      allRights: "Todos los derechos reservados.",
     },
     langBadge: { en: "EN", es: "ES" },
     gold: GOLD,

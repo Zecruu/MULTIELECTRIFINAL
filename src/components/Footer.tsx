@@ -35,7 +35,7 @@ export default function Footer() {
                     rel="noopener noreferrer"
                     className="text-[--gold] hover:underline text-xs mt-1 inline-block"
                   >
-                    {dict.footer.viewMap || "View on Google Maps"}
+                    {dict.footer.viewMap}
                   </a>
                 </div>
               </li>
@@ -61,7 +61,7 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <div className="font-semibold text-base mb-3" style={{ color: "var(--gold)" }}>
-              {dict.footer.quickLinks || "Quick Links"}
+              {dict.footer.quickLinks}
             </div>
             <ul className="space-y-2 text-gray-400">
               <li>
@@ -81,12 +81,12 @@ export default function Footer() {
               </li>
               <li>
                 <Link className="hover:text-[--gold] transition" href="/products">
-                  {dict.nav.products || "Products"}
+                  {dict.nav.products}
                 </Link>
               </li>
               <li>
                 <Link className="hover:text-[--gold] transition" href="/cuenta">
-                  {dict.footer.myAccount || "My Account"}
+                  {dict.footer.myAccount}
                 </Link>
               </li>
             </ul>
@@ -95,7 +95,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="mt-10 pt-6 border-t border-neutral-800 text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} Multi Electric Supply. {dict.footer.allRights || "All rights reserved."}
+          © {new Date().getFullYear()} Multi Electric Supply. {dict.footer.allRights}
         </div>
       </div>
     </footer>
