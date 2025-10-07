@@ -23,6 +23,12 @@ type FilterCategory = {
   created_at: string;
 };
 
+type Category = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
 function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
   const cls = type === "success" ? "bg-emerald-600/80" : "bg-red-600/80";
   return <div className={`fixed top-4 right-4 z-[60] px-3 py-2 rounded-md text-sm ${cls}`}>{msg}</div>;
@@ -30,7 +36,7 @@ function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"store" | "security" | "filters">("store");
+  const [activeTab, setActiveTab] = useState<"store" | "security" | "filters" | "categories">("store");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,6 +47,11 @@ export default function SettingsPage() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategoriesTab, setLoadingCategoriesTab] = useState(false);
+  const [newCategoryNameTab, setNewCategoryNameTab] = useState("");
 
   // Check if user is admin
   useEffect(() => {
@@ -156,6 +167,73 @@ export default function SettingsPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  // Categories management functions
+  async function loadCategories() {
+    setLoadingCategoriesTab(true);
+    try {
+      const res = await fetch("/api/admin/categories");
+      if (!res.ok) throw new Error("Failed to load categories");
+      const data = await res.json();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+      showToast("Failed to load categories", "error");
+    } finally {
+      setLoadingCategoriesTab(false);
+    }
+  }
+
+  async function createCategory() {
+    if (!newCategoryNameTab.trim()) {
+      showToast("Category name cannot be empty", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryNameTab.trim() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create category");
+      }
+
+      const data = await res.json();
+      setCategories([...categories, data.category]);
+      setNewCategoryNameTab("");
+      showToast("Category created successfully", "success");
+    } catch (err) {
+      console.error("Failed to create category:", err);
+      showToast(err instanceof Error ? err.message : "Failed to create category", "error");
+    }
+  }
+
+  async function deleteCategory(id: string) {
+    if (!confirm("Are you sure you want to delete this category?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/categories?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete category");
+      }
+
+      setCategories(categories.filter(c => c.id !== id));
+      showToast("Category deleted successfully", "success");
+    } catch (err) {
+      console.error("Failed to delete category:", err);
+      showToast(err instanceof Error ? err.message : "Failed to delete category", "error");
+    }
+  }
+
   async function saveSettings() {
     if (!settings) return;
     setSaving(true);
@@ -216,6 +294,19 @@ export default function SettingsPage() {
             }`}
           >
             Security
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("categories");
+              loadCategories();
+            }}
+            className={`px-6 py-3 font-medium transition ${
+              activeTab === "categories"
+                ? "text-[#D4AF37] border-b-2 border-[#D4AF37]"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Categories
           </button>
           <button
             onClick={() => setActiveTab("filters")}
@@ -339,6 +430,71 @@ export default function SettingsPage() {
                   <p className="text-sm text-blue-200">
                     ℹ️ Note: 2FA implementation is a placeholder. Full implementation coming soon.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Categories Tab */}
+            {activeTab === "categories" && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-200 mb-4">Product Categories</h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Manage the main product categories used in your inventory. These categories are used when creating or editing products.
+                </p>
+
+                {/* Add New Category */}
+                <div className="bg-neutral-800/40 border border-neutral-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-200 mb-3">Add New Category</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryNameTab}
+                      onChange={(e) => setNewCategoryNameTab(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && createCategory()}
+                      placeholder="Enter category name (e.g., Electrical, Lighting, Tools)..."
+                      className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    />
+                    <button
+                      onClick={createCategory}
+                      className="px-6 py-2 bg-[#D4AF37] text-neutral-950 font-semibold rounded-md hover:bg-[#C4A037] transition"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Categories List */}
+                <div className="bg-neutral-800/40 border border-neutral-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-200 mb-3">Existing Categories</h3>
+                  {loadingCategoriesTab ? (
+                    <div className="text-center py-4 text-gray-400">Loading categories...</div>
+                  ) : categories.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No categories yet. Add your first category above.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {categories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center justify-between p-3 bg-neutral-800 rounded-md hover:bg-neutral-700 transition"
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-gray-200">{category.name}</div>
+                            <div className="text-xs text-gray-500">
+                              Created {new Date(category.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deleteCategory(category.id)}
+                            className="px-3 py-1 text-xs bg-red-600/20 text-red-400 rounded hover:bg-red-600/30 transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -40,8 +40,8 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
       setV(prev => ({ ...prev, ...(initial ?? {}) } as ProductInput));
       setFiles([]);
       setErr(null);
-      // Load product categories
-      fetch("/api/categories").then(r=>r.json()).then(j=>{
+      // Load product categories from the new API
+      fetch("/api/admin/categories").then(r=>r.json()).then(j=>{
         const list = Array.isArray(j.categories) ? j.categories.map((c: {name:string})=>c.name) : [];
         setCategories(list);
       }).catch(()=>setCategories([]));
@@ -198,33 +198,6 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
                 ))}
               </select>
             )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm mb-2">Filter Categories</label>
-            <div className="flex flex-wrap gap-2">
-              {filterCategories.length === 0 ? (
-                <div className="text-xs text-gray-500">No filter categories available. Create them in Settings.</div>
-              ) : (
-                filterCategories.map((cat) => {
-                  const isSelected = (v.filter_categories || []).includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => toggleFilterCategory(cat.id)}
-                      className={`px-3 py-1.5 text-xs rounded-md border transition ${
-                        isSelected
-                          ? "bg-[#D4AF37] border-[#D4AF37] text-neutral-950 font-semibold"
-                          : "bg-neutral-800 border-neutral-700 text-gray-300 hover:border-neutral-600"
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Select one or more filter categories for this product</p>
           </div>
           <div>
             <label className="block text-sm mb-1">Price</label>

@@ -95,6 +95,13 @@ export async function ensureSchema() {
 
   // Add filter_categories column to products table
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS filter_categories jsonb`;
+
+  // Create categories table for product category management
+  await sql`CREATE TABLE IF NOT EXISTS categories (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name text UNIQUE NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`;
 }
 
 export async function upsertCustomer(email: string, name?: string | null, phone?: string | null, address_json?: Record<string, unknown> | null) {
