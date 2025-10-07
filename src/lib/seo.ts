@@ -17,7 +17,7 @@ type SEOParams = {
   description?: string;
   path?: string;
   image?: string;
-  type?: "website" | "article" | "product";
+  type?: "website" | "article";
   noIndex?: boolean;
 };
 
