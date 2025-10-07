@@ -41,6 +41,7 @@ function ProductsPageContent() {
   const [categories, setCategories] = useState<string[]>([]);
   const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Load URL parameters on mount
   useEffect(() => {
@@ -157,78 +158,140 @@ function ProductsPageContent() {
           <h1 className="text-3xl font-semibold" style={{ color: "var(--gold)" }}>
             {lang === "en" ? "Products" : "Productos"}
           </h1>
+
+          {/* Filter Icon with Badge */}
+          {filterCategories.length > 0 && (
+            <button
+              onClick={() => setShowFilterModal(!showFilterModal)}
+              className="relative p-2 rounded-md bg-neutral-800 hover:bg-neutral-700 transition"
+              aria-label="Filter products"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-300"
+              >
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              {selectedFilters.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[--gold] text-neutral-950 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {selectedFilters.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
-        {/* Filters Section */}
-        <div className="mb-6 space-y-4">
-          {/* Category Filter */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-2">
-              {lang === "en" ? "Category" : "Categoría"}
-            </h3>
-            <div className="flex gap-2 flex-wrap">
+        {/* Filter Modal/Dropdown */}
+        {showFilterModal && filterCategories.length > 0 && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setShowFilterModal(false)}
+            />
+
+            {/* Modal Content */}
+            <div className="relative bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl max-w-md w-full p-6 z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-[--gold]">
+                  {lang === "en" ? "Filter Products" : "Filtrar Productos"}
+                </h2>
+                <button
+                  onClick={() => setShowFilterModal(false)}
+                  className="text-gray-400 hover:text-gray-200"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {filterCategories.map((filter) => {
+                  const isSelected = selectedFilters.includes(filter.id);
+                  return (
+                    <label
+                      key={filter.id}
+                      className="flex items-center gap-3 p-3 rounded-md bg-neutral-800/50 hover:bg-neutral-800 cursor-pointer transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleFilter(filter.id)}
+                        className="h-4 w-4 rounded border-neutral-600 bg-neutral-700 text-[--gold] focus:ring-[--gold] focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-gray-200">{filter.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {selectedFilters.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-neutral-800">
+                  <button
+                    onClick={() => {
+                      clearFilters();
+                      setShowFilterModal(false);
+                    }}
+                    className="w-full px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm text-[--gold] transition"
+                  >
+                    {lang === "en" ? "Clear All Filters" : "Limpiar Todos los Filtros"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Category Filter */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-400 mb-2">
+            {lang === "en" ? "Category" : "Categoría"}
+          </h3>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setCategoryFilter("all")}
+              className={`px-4 py-2 rounded-md text-sm transition ${
+                categoryFilter === "all"
+                  ? "bg-[--gold] text-white"
+                  : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+              }`}
+            >
+              {lang === "en" ? "All" : "Todos"}
+            </button>
+            {categories.map(cat => (
               <button
-                onClick={() => setCategoryFilter("all")}
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
                 className={`px-4 py-2 rounded-md text-sm transition ${
-                  categoryFilter === "all"
+                  categoryFilter === cat
                     ? "bg-[--gold] text-white"
                     : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
                 }`}
               >
-                {lang === "en" ? "All" : "Todos"}
+                {cat}
               </button>
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`px-4 py-2 rounded-md text-sm transition ${
-                    categoryFilter === cat
-                      ? "bg-[--gold] text-white"
-                      : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-
-          {/* Filter Categories */}
-          {filterCategories.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium text-gray-400">
-                  {lang === "en" ? "Filter by" : "Filtrar por"}
-                </h3>
-                {selectedFilters.length > 0 && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs text-[--gold] hover:underline"
-                  >
-                    {lang === "en" ? "Clear filters" : "Limpiar filtros"}
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {filterCategories.map(filter => {
-                  const isSelected = selectedFilters.includes(filter.id);
-                  return (
-                    <button
-                      key={filter.id}
-                      onClick={() => toggleFilter(filter.id)}
-                      className={`px-4 py-2 rounded-md text-sm transition border ${
-                        isSelected
-                          ? "bg-[--gold] border-[--gold] text-white"
-                          : "bg-neutral-800 border-neutral-700 text-gray-300 hover:border-neutral-600"
-                      }`}
-                    >
-                      {filter.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Products Grid */}

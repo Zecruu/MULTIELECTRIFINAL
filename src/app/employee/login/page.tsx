@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -13,7 +14,7 @@ export default function LoginPage() {
     const res = await fetch("/api/employee/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, rememberMe }),
     });
     if (res.ok) {
       const next = new URLSearchParams(window.location.search).get("next") || "/employee/dashboard";
@@ -43,6 +44,18 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm mb-1">Password</label>
                 <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-600 bg-neutral-700 text-[--gold] focus:ring-[--gold] focus:ring-offset-0"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-gray-300 cursor-pointer">
+                  Remember me
+                </label>
               </div>
             </div>
             {error && <p className="text-sm text-red-400 mt-3">{error}</p>}

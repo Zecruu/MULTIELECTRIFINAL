@@ -6,7 +6,7 @@ import { ensureSchema } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json().catch(() => ({ email: "", password: "" }));
+  const { email, password, rememberMe } = await req.json().catch(() => ({ email: "", password: "", rememberMe: false }));
   if (!email || !password) return Response.json({ error: "Missing credentials" }, { status: 400 });
 
   // Ensure schema exists
@@ -77,11 +77,15 @@ export async function POST(req: NextRequest) {
   const secret = process.env.JWT_SECRET || "dev-secret-change";
   const token = await signToken(me, secret);
 
+  // Set cookie duration based on rememberMe
+  // If rememberMe is true: 30 days, otherwise: 8 hours
+  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 8;
+
   return new Response(JSON.stringify({ me }), {
     status: 200,
     headers: {
       "content-type": "application/json",
-      "set-cookie": `employee_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 8}`,
+      "set-cookie": `employee_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`,
     },
   });
 }

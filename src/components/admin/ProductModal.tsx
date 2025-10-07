@@ -178,17 +178,26 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
           </div>
           <div>
             <label className="block text-sm mb-1">Category <span className="text-red-400">*</span></label>
-            <input
-              list="categoryOptions"
-              name="category"
-              value={v.category}
-              onChange={onChange}
-              placeholder="e.g., Electrical, Lighting, Tools"
-              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2"
-            />
-            <datalist id="categoryOptions">
-              {categories.map((c)=> <option key={c} value={c} />)}
-            </datalist>
+            {categories.length === 0 ? (
+              <div className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-gray-500">
+                No categories available. Create a product with a category first.
+              </div>
+            ) : (
+              <select
+                name="category"
+                value={v.category}
+                onChange={onChange}
+                required
+                className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-gray-100 focus:border-[#D4AF37] focus:outline-none"
+              >
+                <option value="">Select a category...</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm mb-2">Filter Categories</label>
