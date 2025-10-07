@@ -37,7 +37,7 @@ Add CORS rules to your S3 bucket to allow browser uploads from your domain.
       "HEAD"
     ],
     "AllowedOrigins": [
-      "https://multielectrifinal.vercel.app",
+      "https://multielectricsupply.com",
       "http://localhost:3000"
     ],
     "ExposeHeaders": [
@@ -54,7 +54,7 @@ Add CORS rules to your S3 bucket to allow browser uploads from your domain.
 4. **Click Save changes**
 
 ### Notes
-- Replace `https://multielectrifinal.vercel.app` with your actual production domain
+- `https://multielectricsupply.com` is your production domain
 - Keep `http://localhost:3000` for local development
 - If you have multiple domains (staging, preview), add them to `AllowedOrigins`
 
