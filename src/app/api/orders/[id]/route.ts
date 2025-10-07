@@ -40,10 +40,12 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
         const imageUrl = images.length > 0 ? images[0] : product?.image_url;
 
         return {
+          id: i.id,
           product_id: i.product_id,
-          product_name: i.name,
-          quantity: i.qty,
-          price_cents: i.unit_price_cents,
+          name: i.name,
+          qty: i.qty,
+          unit_price_cents: i.unit_price_cents,
+          line_total_cents: i.line_total_cents,
           image_url: imageUrl,
         };
       }),
