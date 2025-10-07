@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useI18n } from "@/lib/i18n";
 import { addToCart } from "@/lib/cart";
 import ProductDetailModal from "@/components/ProductDetailModal";
@@ -102,11 +103,13 @@ export default function Featured() {
                       onClick={(e) => handleShowInfo(product, e)}
                     >
                       {primaryImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={primaryImage.url}
                           alt={primaryImage.alt || name}
+                          width={144}
+                          height={144}
                           className="max-h-full max-w-full object-contain opacity-90 group-hover:opacity-100 transition"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="text-xs text-neutral-400">No image</div>

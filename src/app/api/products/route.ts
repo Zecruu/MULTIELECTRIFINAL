@@ -77,6 +77,7 @@ const BaseSchema = z.object({
   meta_desc_en: z.string().optional(),
   meta_title_es: z.string().optional(),
   meta_desc_es: z.string().optional(),
+  filter_categories: z.array(z.string()).optional(),
 });
 
 const CreateSchema = BaseSchema.superRefine((d, ctx) => {
@@ -206,9 +207,9 @@ export async function POST(req: NextRequest) {
     const id = crypto.randomUUID();
     const ins = await sql.query<{ id: string }>(
       `INSERT INTO products (
-        id, sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es
+        id, sku, name, name_en, name_es, description, description_en, description_es, category, tags, status, price_cents, compare_at_cents, stock, low_stock_threshold, taxable, images, featured, hot, visible, slug, meta_title_en, meta_desc_en, meta_title_es, meta_desc_es, filter_categories
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
       ) RETURNING id`,
       [
         id,
@@ -236,6 +237,7 @@ export async function POST(req: NextRequest) {
         d.meta_desc_en ?? null,
         d.meta_title_es ?? null,
         d.meta_desc_es ?? null,
+        d.filter_categories ? JSON.stringify(d.filter_categories) : null,
       ]
     );
 
@@ -287,6 +289,8 @@ export async function PATCH(req: NextRequest) {
   const images = d.images ? JSON.stringify(d.images) : undefined;
   const slug = d.slug ? d.slug : undefined;
 
+  const filter_categories = d.filter_categories ? JSON.stringify(d.filter_categories) : undefined;
+
   try {
     await sql.query(
       `UPDATE products SET
@@ -313,8 +317,9 @@ export async function PATCH(req: NextRequest) {
         meta_desc_en = COALESCE($21, meta_desc_en),
         meta_title_es = COALESCE($22, meta_title_es),
         meta_desc_es = COALESCE($23, meta_desc_es),
+        filter_categories = COALESCE($24, filter_categories),
         updated_at = now()
-      WHERE id = $24`,
+      WHERE id = $25`,
       [
         d.name_en ?? null,
         d.name_en ?? null,
@@ -339,6 +344,7 @@ export async function PATCH(req: NextRequest) {
         d.meta_desc_en ?? null,
         d.meta_title_es ?? null,
         d.meta_desc_es ?? null,
+        filter_categories ?? null,
         id,
       ]
     );

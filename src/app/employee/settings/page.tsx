@@ -17,13 +17,30 @@ type Settings = {
   };
 };
 
+type FilterCategory = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
+function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
+  const cls = type === "success" ? "bg-emerald-600/80" : "bg-red-600/80";
+  return <div className={`fixed top-4 right-4 z-[60] px-3 py-2 rounded-md text-sm ${cls}`}>{msg}</div>;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"store" | "security">("store");
+  const [activeTab, setActiveTab] = useState<"store" | "security" | "filters">("store");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [me, setMe] = useState<{ role: string } | null>(null);
+
+  // Filter categories state
+  const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   // Check if user is admin
   useEffect(() => {
@@ -52,6 +69,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!me) return;
     loadSettings();
+    loadFilterCategories();
   }, [me]);
 
   async function loadSettings() {
@@ -66,6 +84,76 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadFilterCategories() {
+    setLoadingCategories(true);
+    try {
+      const res = await fetch("/api/admin/filter-categories");
+      if (!res.ok) throw new Error("Failed to load filter categories");
+      const data = await res.json();
+      setFilterCategories(data.categories || []);
+    } catch (err) {
+      console.error("Failed to load filter categories:", err);
+      showToast("Failed to load filter categories", "error");
+    } finally {
+      setLoadingCategories(false);
+    }
+  }
+
+  async function createFilterCategory() {
+    if (!newCategoryName.trim()) {
+      showToast("Category name is required", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/filter-categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryName.trim() }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create category");
+      }
+
+      const data = await res.json();
+      setFilterCategories([...filterCategories, data.category]);
+      setNewCategoryName("");
+      showToast("Filter category created successfully", "success");
+    } catch (err) {
+      console.error("Failed to create filter category:", err);
+      showToast(err instanceof Error ? err.message : "Failed to create category", "error");
+    }
+  }
+
+  async function deleteFilterCategory(id: string) {
+    if (!confirm("Are you sure you want to delete this filter category? It will be removed from all products.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/filter-categories?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete category");
+      }
+
+      setFilterCategories(filterCategories.filter(c => c.id !== id));
+      showToast("Filter category deleted successfully", "success");
+    } catch (err) {
+      console.error("Failed to delete filter category:", err);
+      showToast("Failed to delete category", "error");
+    }
+  }
+
+  function showToast(msg: string, type: "success" | "error") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
   }
 
   async function saveSettings() {
@@ -103,6 +191,9 @@ export default function SettingsPage() {
         <p className="text-gray-400">Store configuration and integrations</p>
       </div>
 
+      {/* Toast Notification */}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
+
       {/* Tabs */}
       <div className="bg-neutral-900/40 border border-neutral-800 rounded-lg mb-6">
         <div className="flex border-b border-neutral-800">
@@ -125,6 +216,16 @@ export default function SettingsPage() {
             }`}
           >
             Security
+          </button>
+          <button
+            onClick={() => setActiveTab("filters")}
+            className={`px-6 py-3 font-medium transition ${
+              activeTab === "filters"
+                ? "text-[#D4AF37] border-b-2 border-[#D4AF37]"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Filter Categories
           </button>
         </div>
 
@@ -242,16 +343,81 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Save Button */}
-            <div className="mt-6 pt-6 border-t border-neutral-800">
-              <button
-                onClick={saveSettings}
-                disabled={saving}
-                className="px-6 py-2 bg-[#D4AF37] text-neutral-950 font-semibold rounded-md hover:bg-[#C4A037] transition disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Settings"}
-              </button>
-            </div>
+            {/* Filter Categories Tab */}
+            {activeTab === "filters" && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-200 mb-4">Filter Categories</h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Create custom filter categories that customers can use to filter products on the catalog page.
+                </p>
+
+                {/* Add New Category */}
+                <div className="bg-neutral-800/40 border border-neutral-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-200 mb-3">Add New Category</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && createFilterCategory()}
+                      placeholder="Enter category name..."
+                      className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                    />
+                    <button
+                      onClick={createFilterCategory}
+                      className="px-6 py-2 bg-[#D4AF37] text-neutral-950 font-semibold rounded-md hover:bg-[#C4A037] transition"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Categories List */}
+                <div className="bg-neutral-800/40 border border-neutral-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-200 mb-3">Existing Categories</h3>
+                  {loadingCategories ? (
+                    <div className="text-center py-4 text-gray-400">Loading categories...</div>
+                  ) : filterCategories.length === 0 ? (
+                    <div className="text-center py-4 text-gray-400">No filter categories yet. Add one above!</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filterCategories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center justify-between p-3 bg-neutral-900/60 border border-neutral-700 rounded-md"
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-gray-200">{category.name}</div>
+                            <div className="text-xs text-gray-500">
+                              Created {new Date(category.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deleteFilterCategory(category.id)}
+                            className="px-3 py-1 text-xs bg-red-900/40 text-red-300 border border-red-700/50 rounded hover:bg-red-900/60 transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Save Button (only for store and security tabs) */}
+            {(activeTab === "store" || activeTab === "security") && (
+              <div className="mt-6 pt-6 border-t border-neutral-800">
+                <button
+                  onClick={saveSettings}
+                  disabled={saving}
+                  className="px-6 py-2 bg-[#D4AF37] text-neutral-950 font-semibold rounded-md hover:bg-[#C4A037] transition disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save Settings"}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-8 text-center text-gray-400">No settings available</div>

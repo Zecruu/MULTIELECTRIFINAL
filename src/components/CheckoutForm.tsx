@@ -10,6 +10,18 @@ type Props = {
   cart: Cart;
 };
 
+type FieldErrors = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+};
+
+function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
+  const cls = type === "success" ? "bg-emerald-600/80" : "bg-red-600/80";
+  return <div className={`fixed top-4 right-4 z-[60] px-3 py-2 rounded-md text-sm ${cls}`}>{msg}</div>;
+}
+
 export default function CheckoutForm({ cart }: Props) {
   const { lang } = useI18n();
   const router = useRouter();
@@ -18,6 +30,8 @@ export default function CheckoutForm({ cart }: Props) {
 
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
     email: "",
@@ -52,6 +66,54 @@ export default function CheckoutForm({ cart }: Props) {
     loadCustomerData();
   }, []);
 
+  function validateFields(): boolean {
+    const errors: FieldErrors = {};
+    let isValid = true;
+
+    // Name validation
+    if (!shippingInfo.name.trim()) {
+      errors.name = lang === "en" ? "Name is required" : "El nombre es requerido";
+      isValid = false;
+    }
+
+    // Email validation
+    if (!shippingInfo.email.trim()) {
+      errors.email = lang === "en" ? "Email is required" : "El correo electrónico es requerido";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingInfo.email)) {
+      errors.email = lang === "en" ? "Invalid email address" : "Dirección de correo electrónico inválida";
+      isValid = false;
+    }
+
+    // Phone validation
+    if (!shippingInfo.phone.trim()) {
+      errors.phone = lang === "en" ? "Phone number is required" : "El número de teléfono es requerido";
+      isValid = false;
+    }
+
+    // Address validation
+    if (!shippingInfo.address.trim()) {
+      errors.address = lang === "en" ? "Address is required" : "La dirección es requerida";
+      isValid = false;
+    }
+
+    setFieldErrors(errors);
+
+    if (!isValid) {
+      showToast(
+        lang === "en" ? "Please fill in all required fields" : "Por favor complete todos los campos requeridos",
+        "error"
+      );
+    }
+
+    return isValid;
+  }
+
+  function showToast(msg: string, type: "success" | "error") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
@@ -59,14 +121,14 @@ export default function CheckoutForm({ cart }: Props) {
       return;
     }
 
-    // Validate shipping info
-    if (!shippingInfo.name || !shippingInfo.email || !shippingInfo.address || !shippingInfo.city) {
-      setError(lang === "en" ? "Please fill in all required fields" : "Por favor complete todos los campos requeridos");
+    // Validate all required fields
+    if (!validateFields()) {
       return;
     }
 
     setProcessing(true);
     setError(null);
+    setFieldErrors({});
 
     try {
       // Confirm payment
@@ -133,14 +195,25 @@ export default function CheckoutForm({ cart }: Props) {
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name } = e.target;
     setShippingInfo({
       ...shippingInfo,
-      [e.target.name]: e.target.value,
+      [name]: e.target.value,
     });
+    // Clear field error when user starts typing
+    if (fieldErrors[name as keyof FieldErrors]) {
+      setFieldErrors({
+        ...fieldErrors,
+        [name]: undefined,
+      });
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Toast Notification */}
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
+
       {/* Shipping Information */}
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-6">
         <h2 className="text-xl font-semibold mb-4">
@@ -157,9 +230,13 @@ export default function CheckoutForm({ cart }: Props) {
               name="name"
               value={shippingInfo.name}
               onChange={handleInputChange}
-              required
-              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-gray-100 focus:border-[--gold] focus:outline-none"
+              className={`w-full rounded-md bg-neutral-800 border px-3 py-2 text-gray-100 focus:outline-none ${
+                fieldErrors.name ? "border-red-500 focus:border-red-500" : "border-neutral-700 focus:border-[--gold]"
+              }`}
             />
+            {fieldErrors.name && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.name}</p>
+            )}
           </div>
 
           <div>
@@ -171,22 +248,31 @@ export default function CheckoutForm({ cart }: Props) {
               name="email"
               value={shippingInfo.email}
               onChange={handleInputChange}
-              required
-              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-gray-100 focus:border-[--gold] focus:outline-none"
+              className={`w-full rounded-md bg-neutral-800 border px-3 py-2 text-gray-100 focus:outline-none ${
+                fieldErrors.email ? "border-red-500 focus:border-red-500" : "border-neutral-700 focus:border-[--gold]"
+              }`}
             />
+            {fieldErrors.email && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              {lang === "en" ? "Phone" : "Teléfono"}
+              {lang === "en" ? "Phone" : "Teléfono"} <span className="text-red-400">*</span>
             </label>
             <input
               type="tel"
               name="phone"
               value={shippingInfo.phone}
               onChange={handleInputChange}
-              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-gray-100 focus:border-[--gold] focus:outline-none"
+              className={`w-full rounded-md bg-neutral-800 border px-3 py-2 text-gray-100 focus:outline-none ${
+                fieldErrors.phone ? "border-red-500 focus:border-red-500" : "border-neutral-700 focus:border-[--gold]"
+              }`}
             />
+            {fieldErrors.phone && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.phone}</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -198,9 +284,13 @@ export default function CheckoutForm({ cart }: Props) {
               name="address"
               value={shippingInfo.address}
               onChange={handleInputChange}
-              required
-              className="w-full rounded-md bg-neutral-800 border border-neutral-700 px-3 py-2 text-gray-100 focus:border-[--gold] focus:outline-none"
+              className={`w-full rounded-md bg-neutral-800 border px-3 py-2 text-gray-100 focus:outline-none ${
+                fieldErrors.address ? "border-red-500 focus:border-red-500" : "border-neutral-700 focus:border-[--gold]"
+              }`}
             />
+            {fieldErrors.address && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.address}</p>
+            )}
           </div>
 
           <div>

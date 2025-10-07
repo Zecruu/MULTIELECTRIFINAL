@@ -85,6 +85,16 @@ export async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS order_items (id uuid PRIMARY KEY, order_id uuid REFERENCES orders(id) ON DELETE CASCADE, product_id uuid REFERENCES products(id), sku text NOT NULL, name text NOT NULL, qty integer NOT NULL, unit_price_cents integer NOT NULL, line_total_cents integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS order_sequences (year integer PRIMARY KEY, seq integer NOT NULL);`;
   await sql`CREATE TABLE IF NOT EXISTS audit_logs (id uuid PRIMARY KEY, actor_id text, action text NOT NULL, product_id uuid, before jsonb, after jsonb, ip text, user_agent text, ts timestamptz NOT NULL DEFAULT now());`;
+
+  // Create filter_categories table for custom product filtering
+  await sql`CREATE TABLE IF NOT EXISTS filter_categories (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name text UNIQUE NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`;
+
+  // Add filter_categories column to products table
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS filter_categories jsonb`;
 }
 
 export async function upsertCustomer(email: string, name?: string | null, phone?: string | null, address_json?: Record<string, unknown> | null) {
@@ -163,12 +173,34 @@ export async function updateOrderStatus(id: string, status: DbOrderStatus) {
 export interface OrderDetail {
   id: string; order_number: string; status: DbOrderStatus; created_at: string;
   subtotal_cents: number; tax_cents: number; total_cents: number; currency: string;
-  customer: { email: string; name: string | null };
+  customer: { email: string; name: string | null; phone?: string | null };
+  shipping_address?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  };
   items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number; image_url?: string }>;
 }
 
 export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
-  const oRes = await sql.query<{ id: string; order_number: string; status: DbOrderStatus; created_at: string; subtotal_cents: number; tax_cents: number; total_cents: number; currency: string; customer_email: string; customer_name: string | null }>(`SELECT o.*, c.email as customer_email, c.name as customer_name FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.id=$1 LIMIT 1`, [id]);
+  const oRes = await sql.query<{
+    id: string;
+    order_number: string;
+    status: DbOrderStatus;
+    created_at: string;
+    subtotal_cents: number;
+    tax_cents: number;
+    total_cents: number;
+    currency: string;
+    customer_email: string;
+    customer_name: string | null;
+    customer_phone: string | null;
+    shipping_address: unknown;
+  }>(`SELECT o.*, c.email as customer_email, c.name as customer_name, c.phone as customer_phone FROM orders o JOIN customers c ON c.id=o.customer_id WHERE o.id=$1 LIMIT 1`, [id]);
   if (oRes.rows.length === 0) return null;
   const row = oRes.rows[0];
   const iRes = await sql.query<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>(`SELECT id, product_id, sku, name, qty, unit_price_cents, line_total_cents FROM order_items WHERE order_id=$1 ORDER BY name`, [id]);
@@ -185,6 +217,12 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     pRes.rows.forEach(p => products.set(p.id, p));
   }
 
+  // Parse shipping address if available
+  let shippingAddress;
+  if (row.shipping_address && typeof row.shipping_address === 'object') {
+    shippingAddress = row.shipping_address as OrderDetail['shipping_address'];
+  }
+
   return {
     id: row.id,
     order_number: row.order_number,
@@ -194,7 +232,8 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     tax_cents: row.tax_cents,
     total_cents: row.total_cents,
     currency: row.currency,
-    customer: { email: row.customer_email, name: row.customer_name },
+    customer: { email: row.customer_email, name: row.customer_name, phone: row.customer_phone },
+    shipping_address: shippingAddress,
     items: iRes.rows.map(i => {
       const product = products.get(i.product_id);
       const images = product?.images ? (Array.isArray(product.images) ? product.images : []) : [];

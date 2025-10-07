@@ -2,6 +2,11 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 
+type FilterCategory = {
+  id: string;
+  name: string;
+};
+
 export type ProductInput = {
   id?: string;
   sku?: string;
@@ -19,24 +24,32 @@ export type ProductInput = {
   hot?: boolean;
   visible?: boolean;
   images?: string[];
+  filter_categories?: string[]; // Array of filter category IDs
 };
 
 export default function ProductModal({ open, onClose, initial, onSaved }: { open: boolean; onClose: () => void; initial?: Partial<ProductInput>; onSaved: () => void; }) {
-  const [v, setV] = useState<ProductInput>({ name_en:"", name_es:"", description_en:"", description_es:"", category:"", price:"0", stock:"0", featured:false, visible:true, status:"draft", images:[] });
+  const [v, setV] = useState<ProductInput>({ name_en:"", name_es:"", description_en:"", description_es:"", category:"", price:"0", stock:"0", featured:false, visible:true, status:"draft", images:[], filter_categories:[] });
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
 
   useEffect(() => {
     if (open) {
       setV(prev => ({ ...prev, ...(initial ?? {}) } as ProductInput));
       setFiles([]);
       setErr(null);
+      // Load product categories
       fetch("/api/categories").then(r=>r.json()).then(j=>{
         const list = Array.isArray(j.categories) ? j.categories.map((c: {name:string})=>c.name) : [];
         setCategories(list);
       }).catch(()=>setCategories([]));
+      // Load filter categories
+      fetch("/api/admin/filter-categories").then(r=>r.json()).then(j=>{
+        const list = Array.isArray(j.categories) ? j.categories : [];
+        setFilterCategories(list);
+      }).catch(()=>setFilterCategories([]));
     }
   }, [open, initial]);
 
@@ -46,6 +59,19 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
     const name = target.name as FieldName;
     const val = target instanceof HTMLInputElement && target.type === "checkbox" ? (target.checked as unknown as ProductInput[FieldName]) : (target.value as unknown as ProductInput[FieldName]);
     setV(p => ({ ...p, [name]: val }));
+  }
+
+  function toggleFilterCategory(categoryId: string) {
+    setV(prev => {
+      const current = prev.filter_categories || [];
+      const isSelected = current.includes(categoryId);
+      return {
+        ...prev,
+        filter_categories: isSelected
+          ? current.filter(id => id !== categoryId)
+          : [...current, categoryId]
+      };
+    });
   }
 
   async function upload(file: File) {
@@ -163,6 +189,33 @@ export default function ProductModal({ open, onClose, initial, onSaved }: { open
             <datalist id="categoryOptions">
               {categories.map((c)=> <option key={c} value={c} />)}
             </datalist>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm mb-2">Filter Categories</label>
+            <div className="flex flex-wrap gap-2">
+              {filterCategories.length === 0 ? (
+                <div className="text-xs text-gray-500">No filter categories available. Create them in Settings.</div>
+              ) : (
+                filterCategories.map((cat) => {
+                  const isSelected = (v.filter_categories || []).includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleFilterCategory(cat.id)}
+                      className={`px-3 py-1.5 text-xs rounded-md border transition ${
+                        isSelected
+                          ? "bg-[#D4AF37] border-[#D4AF37] text-neutral-950 font-semibold"
+                          : "bg-neutral-800 border-neutral-700 text-gray-300 hover:border-neutral-600"
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Select one or more filter categories for this product</p>
           </div>
           <div>
             <label className="block text-sm mb-1">Price</label>

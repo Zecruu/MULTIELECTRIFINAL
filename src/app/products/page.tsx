@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { addToCart } from "@/lib/cart";
 import ProductDetailModal from "@/components/ProductDetailModal";
@@ -20,19 +21,38 @@ type Product = {
   hot: boolean;
   images: Array<{ url: string; alt?: string | null; primary?: boolean }>;
   slug: string | null;
+  filter_categories?: string[];
+};
+
+type FilterCategory = {
+  id: string;
+  name: string;
 };
 
 export default function ProductsPage() {
   const { lang } = useI18n();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
+  const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+
+  // Load URL parameters on mount
+  useEffect(() => {
+    const filters = searchParams.get("filters");
+    if (filters) {
+      setSelectedFilters(filters.split(","));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadProducts();
+    loadFilterCategories();
   }, []);
 
   async function loadProducts() {
@@ -41,7 +61,7 @@ export default function ProductsPage() {
       const res = await fetch("/api/store/products");
       const data = await res.json();
       setProducts(data.products || []);
-      
+
       // Extract unique categories
       const cats = Array.from(new Set((data.products || []).map((p: Product) => p.category)));
       setCategories(cats as string[]);
@@ -50,6 +70,40 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadFilterCategories() {
+    try {
+      const res = await fetch("/api/admin/filter-categories");
+      const data = await res.json();
+      setFilterCategories(data.categories || []);
+    } catch (err) {
+      console.error("Failed to load filter categories:", err);
+    }
+  }
+
+  function toggleFilter(filterId: string) {
+    const newFilters = selectedFilters.includes(filterId)
+      ? selectedFilters.filter(id => id !== filterId)
+      : [...selectedFilters, filterId];
+
+    setSelectedFilters(newFilters);
+
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString());
+    if (newFilters.length > 0) {
+      params.set("filters", newFilters.join(","));
+    } else {
+      params.delete("filters");
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  }
+
+  function clearFilters() {
+    setSelectedFilters([]);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("filters");
+    router.push(`?${params.toString()}`, { scroll: false });
   }
 
 
@@ -72,9 +126,27 @@ export default function ProductsPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  const filteredProducts = categoryFilter === "all" 
-    ? products 
-    : products.filter(p => p.category === categoryFilter);
+  // Apply filters
+  const filteredProducts = products.filter(p => {
+    // Category filter
+    if (categoryFilter !== "all" && p.category !== categoryFilter) {
+      return false;
+    }
+
+    // Filter categories filter
+    if (selectedFilters.length > 0) {
+      const productFilters = p.filter_categories || [];
+      // Product must have at least one of the selected filters
+      const hasMatchingFilter = selectedFilters.some(filterId =>
+        productFilters.includes(filterId)
+      );
+      if (!hasMatchingFilter) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <main className="min-h-screen bg-neutral-950 text-gray-100">
@@ -86,31 +158,76 @@ export default function ProductsPage() {
           </h1>
         </div>
 
-        {/* Category Filter */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <button
-            onClick={() => setCategoryFilter("all")}
-            className={`px-4 py-2 rounded-md text-sm transition ${
-              categoryFilter === "all"
-                ? "bg-[--gold] text-white"
-                : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
-            }`}
-          >
-            {lang === "en" ? "All" : "Todos"}
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-4 py-2 rounded-md text-sm transition ${
-                categoryFilter === cat
-                  ? "bg-[--gold] text-white"
-                  : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Filters Section */}
+        <div className="mb-6 space-y-4">
+          {/* Category Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">
+              {lang === "en" ? "Category" : "Categoría"}
+            </h3>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setCategoryFilter("all")}
+                className={`px-4 py-2 rounded-md text-sm transition ${
+                  categoryFilter === "all"
+                    ? "bg-[--gold] text-white"
+                    : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+                }`}
+              >
+                {lang === "en" ? "All" : "Todos"}
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`px-4 py-2 rounded-md text-sm transition ${
+                    categoryFilter === cat
+                      ? "bg-[--gold] text-white"
+                      : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filter Categories */}
+          {filterCategories.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-400">
+                  {lang === "en" ? "Filter by" : "Filtrar por"}
+                </h3>
+                {selectedFilters.length > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-[--gold] hover:underline"
+                  >
+                    {lang === "en" ? "Clear filters" : "Limpiar filtros"}
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {filterCategories.map(filter => {
+                  const isSelected = selectedFilters.includes(filter.id);
+                  return (
+                    <button
+                      key={filter.id}
+                      onClick={() => toggleFilter(filter.id)}
+                      className={`px-4 py-2 rounded-md text-sm transition border ${
+                        isSelected
+                          ? "bg-[--gold] border-[--gold] text-white"
+                          : "bg-neutral-800 border-neutral-700 text-gray-300 hover:border-neutral-600"
+                      }`}
+                    >
+                      {filter.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Products Grid */}

@@ -28,7 +28,16 @@ type OrderDetail = {
   tax_cents: number;
   total_cents: number;
   currency: string;
-  customer: { email: string; name: string | null };
+  customer: { email: string; name: string | null; phone?: string | null };
+  shipping_address?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  };
   items: Array<{ id: string; product_id: string; sku: string; name: string; qty: number; unit_price_cents: number; line_total_cents: number }>;
 };
 
@@ -230,10 +239,46 @@ export default function OrdersPage() {
       <Modal open={!!selected} onClose={()=>setSelected(null)} title={selected?`Order ${selected.order_number}`:""}>
         {selected && (
           <div className="space-y-3">
-            <div>
-              <div className="text-sm">Customer: <span className="font-medium">{selected.customer.name || selected.customer.email}</span></div>
-              <div className="text-xs opacity-80">{selected.customer.email}</div>
+            {/* Customer Information */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-gray-400 mb-1">Customer Information</div>
+                <div className="text-sm font-medium">{selected.customer.name || "N/A"}</div>
+                <div className="text-xs text-gray-400">{selected.customer.email}</div>
+                {selected.customer.phone && (
+                  <div className="text-xs text-gray-400">{selected.customer.phone}</div>
+                )}
+              </div>
+
+              {/* Shipping Address */}
+              {selected.shipping_address && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Shipping Address</div>
+                  <div className="text-sm">
+                    {selected.shipping_address.name && (
+                      <div className="font-medium">{selected.shipping_address.name}</div>
+                    )}
+                    {selected.shipping_address.address && (
+                      <div className="text-xs">{selected.shipping_address.address}</div>
+                    )}
+                    {(selected.shipping_address.city || selected.shipping_address.state || selected.shipping_address.zipCode) && (
+                      <div className="text-xs">
+                        {selected.shipping_address.city && `${selected.shipping_address.city}, `}
+                        {selected.shipping_address.state && `${selected.shipping_address.state} `}
+                        {selected.shipping_address.zipCode}
+                      </div>
+                    )}
+                    {selected.shipping_address.phone && (
+                      <div className="text-xs text-gray-400 mt-1">Phone: {selected.shipping_address.phone}</div>
+                    )}
+                    {selected.shipping_address.email && (
+                      <div className="text-xs text-gray-400">Email: {selected.shipping_address.email}</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="border-t border-neutral-800 pt-2">
               <div className="text-sm mb-1">Items</div>
               <div className="max-h-60 overflow-auto">
