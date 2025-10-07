@@ -119,6 +119,7 @@ export default function CheckoutPage() {
   const options = {
     clientSecret,
     appearance,
+    loader: 'auto' as const,
   };
 
   return (

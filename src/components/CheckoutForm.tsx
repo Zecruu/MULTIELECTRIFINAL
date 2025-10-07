@@ -253,7 +253,10 @@ export default function CheckoutForm({ cart }: Props) {
 
         <PaymentElement
           options={{
-            layout: 'tabs',
+            layout: {
+              type: 'tabs',
+              defaultCollapsed: false,
+            },
             fields: {
               billingDetails: 'never'
             },
@@ -263,7 +266,8 @@ export default function CheckoutForm({ cart }: Props) {
             wallets: {
               applePay: 'never',
               googlePay: 'never'
-            }
+            },
+            paymentMethodOrder: ['card']
           }}
         />
       </div>

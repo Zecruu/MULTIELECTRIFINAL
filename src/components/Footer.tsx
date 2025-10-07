@@ -27,10 +27,10 @@ export default function Footer() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <div>
-                  <div className="text-gray-300">92JV+3J3, Trujillo Bajo</div>
-                  <div className="text-gray-400">Carolina, PR 00987</div>
+                  <div className="text-gray-300">Av. 65 de Infantería km 7.4</div>
+                  <div className="text-gray-400">Carolina, PR 00923</div>
                   <a
-                    href="https://maps.app.goo.gl/FEhX9JTrqaZs9n1u5"
+                    href="https://www.google.com/maps/dir/?api=1&destination=Multi+Electric+Supply+Corp,+Av.+65+de+Infantería+km+7.4,+Carolina,+PR+00923"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[--gold] hover:underline text-xs mt-1 inline-block"

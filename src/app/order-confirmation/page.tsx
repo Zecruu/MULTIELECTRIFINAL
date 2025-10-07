@@ -151,27 +151,28 @@ function OrderConfirmationContent() {
             </div>
           </div>
 
-          {/* Shipping Address */}
-          {order.shipping_address && (
-            <div>
-              <div className="text-sm text-gray-400 mb-2">
-                {lang === "en" ? "Shipping Address" : "Dirección de Envío"}
-              </div>
-              <div className="text-sm text-gray-300">
-                {typeof order.shipping_address === 'string' 
-                  ? JSON.parse(order.shipping_address).name 
-                  : order.shipping_address.name}
-                <br />
-                {typeof order.shipping_address === 'string' 
-                  ? JSON.parse(order.shipping_address).address 
-                  : order.shipping_address.address}
-                <br />
-                {typeof order.shipping_address === 'string' 
-                  ? `${JSON.parse(order.shipping_address).city}, ${JSON.parse(order.shipping_address).state} ${JSON.parse(order.shipping_address).zipCode}`
-                  : `${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zipCode}`}
-              </div>
+          {/* Pickup Location */}
+          <div>
+            <div className="text-sm text-gray-400 mb-2">
+              {lang === "en" ? "Pickup Location" : "Ubicación de Recogido"}
             </div>
-          )}
+            <div className="text-sm text-gray-300">
+              <strong>Multi Electric Supply, Corp.</strong>
+              <br />
+              Av. 65 de Infantería km 7.4
+              <br />
+              Carolina, PR 00923
+              <br />
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=Multi+Electric+Supply+Corp,+Av.+65+de+Infantería+km+7.4,+Carolina,+PR+00923"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[--gold] hover:underline text-xs mt-1 inline-block"
+              >
+                {lang === "en" ? "Get Directions" : "Obtener Direcciones"}
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Order Items */}
