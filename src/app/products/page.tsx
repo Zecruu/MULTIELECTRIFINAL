@@ -21,12 +21,6 @@ type Product = {
   hot: boolean;
   images: Array<{ url: string; alt?: string | null; primary?: boolean }>;
   slug: string | null;
-  filter_categories?: string[];
-};
-
-type FilterCategory = {
-  id: string;
-  name: string;
 };
 
 function ProductsPageContent() {
@@ -39,21 +33,19 @@ function ProductsPageContent() {
   const [toast, setToast] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
-  const [filterCategories, setFilterCategories] = useState<FilterCategory[]>([]);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Load URL parameters on mount
   useEffect(() => {
-    const filters = searchParams.get("filters");
+    const filters = searchParams.get("categories");
     if (filters) {
-      setSelectedFilters(filters.split(","));
+      setSelectedCategories(filters.split(","));
     }
   }, [searchParams]);
 
   useEffect(() => {
     loadProducts();
-    loadFilterCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -74,37 +66,27 @@ function ProductsPageContent() {
     }
   }
 
-  async function loadFilterCategories() {
-    try {
-      const res = await fetch("/api/admin/filter-categories");
-      const data = await res.json();
-      setFilterCategories(data.categories || []);
-    } catch (err) {
-      console.error("Failed to load filter categories:", err);
-    }
-  }
+  function toggleCategoryFilter(category: string) {
+    const newFilters = selectedCategories.includes(category)
+      ? selectedCategories.filter(c => c !== category)
+      : [...selectedCategories, category];
 
-  function toggleFilter(filterId: string) {
-    const newFilters = selectedFilters.includes(filterId)
-      ? selectedFilters.filter(id => id !== filterId)
-      : [...selectedFilters, filterId];
-
-    setSelectedFilters(newFilters);
+    setSelectedCategories(newFilters);
 
     // Update URL
     const params = new URLSearchParams(searchParams.toString());
     if (newFilters.length > 0) {
-      params.set("filters", newFilters.join(","));
+      params.set("categories", newFilters.join(","));
     } else {
-      params.delete("filters");
+      params.delete("categories");
     }
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  function clearFilters() {
-    setSelectedFilters([]);
+  function clearCategoryFilters() {
+    setSelectedCategories([]);
     const params = new URLSearchParams(searchParams.toString());
-    params.delete("filters");
+    params.delete("categories");
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
@@ -130,19 +112,15 @@ function ProductsPageContent() {
 
   // Apply filters
   const filteredProducts = products.filter(p => {
-    // Category filter
+    // Main category filter (from category buttons)
     if (categoryFilter !== "all" && p.category !== categoryFilter) {
       return false;
     }
 
-    // Filter categories filter
-    if (selectedFilters.length > 0) {
-      const productFilters = p.filter_categories || [];
-      // Product must have at least one of the selected filters
-      const hasMatchingFilter = selectedFilters.some(filterId =>
-        productFilters.includes(filterId)
-      );
-      if (!hasMatchingFilter) {
+    // Additional category filters (from filter modal)
+    if (selectedCategories.length > 0) {
+      // Product must match one of the selected categories
+      if (!selectedCategories.includes(p.category)) {
         return false;
       }
     }
@@ -160,7 +138,7 @@ function ProductsPageContent() {
           </h1>
 
           {/* Filter Icon with Badge */}
-          {filterCategories.length > 0 && (
+          {categories.length > 1 && (
             <button
               onClick={() => setShowFilterModal(!showFilterModal)}
               className="relative p-2 rounded-md bg-neutral-800 hover:bg-neutral-700 transition"
@@ -180,9 +158,9 @@ function ProductsPageContent() {
               >
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
               </svg>
-              {selectedFilters.length > 0 && (
+              {selectedCategories.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[--gold] text-neutral-950 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {selectedFilters.length}
+                  {selectedCategories.length}
                 </span>
               )}
             </button>
@@ -190,7 +168,7 @@ function ProductsPageContent() {
         </div>
 
         {/* Filter Modal/Dropdown */}
-        {showFilterModal && filterCategories.length > 0 && (
+        {showFilterModal && categories.length > 0 && (
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
             {/* Backdrop */}
             <div
@@ -226,30 +204,30 @@ function ProductsPageContent() {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filterCategories.map((filter) => {
-                  const isSelected = selectedFilters.includes(filter.id);
+                {categories.map((category) => {
+                  const isSelected = selectedCategories.includes(category);
                   return (
                     <label
-                      key={filter.id}
+                      key={category}
                       className="flex items-center gap-3 p-3 rounded-md bg-neutral-800/50 hover:bg-neutral-800 cursor-pointer transition"
                     >
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleFilter(filter.id)}
+                        onChange={() => toggleCategoryFilter(category)}
                         className="h-4 w-4 rounded border-neutral-600 bg-neutral-700 text-[--gold] focus:ring-[--gold] focus:ring-offset-0"
                       />
-                      <span className="text-sm text-gray-200">{filter.name}</span>
+                      <span className="text-sm text-gray-200">{category}</span>
                     </label>
                   );
                 })}
               </div>
 
-              {selectedFilters.length > 0 && (
+              {selectedCategories.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-neutral-800">
                   <button
                     onClick={() => {
-                      clearFilters();
+                      clearCategoryFilters();
                       setShowFilterModal(false);
                     }}
                     className="w-full px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-sm text-[--gold] transition"
